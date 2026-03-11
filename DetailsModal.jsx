@@ -138,24 +138,34 @@ const DetailsModal = ({ title, data, columns, loading, onClose, threshold, click
             {/* ── Table (filtered data) ── */}
             <div className="details-table-container">
               {data && data.length > 0 ? (
-                <table>
-                  <thead>
-                    <tr>
-                      {columns.map(col => <th key={col.key}>{col.label}</th>)}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRows.map((row, index) => (
-                      <tr key={index} className="table-row-hover">
-                        {columns.map(col => (
-                          <td key={col.key}>{row[col.key]}</td>
-                        ))}
+                filteredRows.length > 0 ? (
+                  <table>
+                    <thead>
+                      <tr>
+                        {columns.map(col => <th key={col.key}>{col.label}</th>)}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {filteredRows.map((row, index) => (
+                        <tr key={index} className="table-row-hover">
+                          {columns.map(col => (
+                            <td key={col.key}>{row[col.key]}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="no-data-message">
+                    <span className="no-data-icon">📭</span>
+                    <p>No records with value greater than 10 found for this selected period.</p>
+                  </div>
+                )
               ) : (
-                <p>No details available for this period.</p>
+                <div className="no-data-message">
+                  <span className="no-data-icon">📭</span>
+                  <p>No details available for this period.</p>
+                </div>
               )}
             </div>
 
