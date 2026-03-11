@@ -221,42 +221,46 @@ const DetailsModal = ({ title, data, columns, loading, onClose, threshold, click
                     </div>
                   )}
 
-                  {/* 4. Value Distribution — threshold based */}
+                  {/* 4. Value Distribution — stacked layout */}
                   {valueDistribution && (
                     <div className="insight-card">
                       <div className="insight-card-title">📊 Value Distribution</div>
                       <div className="insight-card-subtitle">Threshold: {threshold}</div>
                       <div className="distribution-list">
-                        <div className="dist-row">
-                          <span className="dist-label">🟢 Below (&lt;{threshold})</span>
-                          <span className="dist-bar-wrap">
+
+                        <div className="dist-block">
+                          <span className="dist-block-label">🟢 Below (&lt;{threshold})</span>
+                          <div className="dist-bar-wrap">
                             <span
                               className="dist-bar green"
                               style={{ width: `${(valueDistribution.good / valueDistribution.total) * 100}%` }}
                             />
-                          </span>
-                          <span className="dist-count">{valueDistribution.good}</span>
+                          </div>
+                          <span className="dist-block-count">{valueDistribution.good} records</span>
                         </div>
-                        <div className="dist-row">
-                          <span className="dist-label">🟡 At (~{threshold})</span>
-                          <span className="dist-bar-wrap">
+
+                        <div className="dist-block">
+                          <span className="dist-block-label">🟡 At (~{threshold})</span>
+                          <div className="dist-bar-wrap">
                             <span
                               className="dist-bar yellow"
                               style={{ width: `${(valueDistribution.atThresh / valueDistribution.total) * 100}%` }}
                             />
-                          </span>
-                          <span className="dist-count">{valueDistribution.atThresh}</span>
+                          </div>
+                          <span className="dist-block-count">{valueDistribution.atThresh} records</span>
                         </div>
-                        <div className="dist-row">
-                          <span className="dist-label">🔴 Above (&gt;{threshold})</span>
-                          <span className="dist-bar-wrap">
+
+                        <div className="dist-block">
+                          <span className="dist-block-label">🔴 Above (&gt;{threshold})</span>
+                          <div className="dist-bar-wrap">
                             <span
                               className="dist-bar red"
                               style={{ width: `${(valueDistribution.bad / valueDistribution.total) * 100}%` }}
                             />
-                          </span>
-                          <span className="dist-count">{valueDistribution.bad}</span>
+                          </div>
+                          <span className="dist-block-count">{valueDistribution.bad} records</span>
                         </div>
+
                       </div>
                     </div>
                   )}
