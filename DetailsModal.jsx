@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import './DetailsModal.css';
 
-const DetailsModal = ({ title, data, columns, loading, onClose, threshold }) => {
+const DetailsModal = ({ title, data, columns, loading, onClose, threshold, clickedValue }) => {
 
   // ── Table uses FILTERED data (Value > 10) ──
   const filterData = (data) => {
@@ -58,18 +58,14 @@ const DetailsModal = ({ title, data, columns, loading, onClose, threshold }) => 
     if (!data || data.length === 0) return null;
     const total = data.length;
     const uniqueApps = new Set(data.map(r => r.Application).filter(Boolean)).size;
-    const values = data.map(r => parseFloat(r.Value)).filter(v => !isNaN(v));
-    const avg = values.length
-      ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)
-      : '-';
     const uniqueNARs = new Set(data.map(r => r.NAR_ID).filter(Boolean)).size;
-    return { total, uniqueApps, avg, uniqueNARs };
+    return { total, uniqueApps, uniqueNARs };
   }, [data]);
 
   // 5. Value Distribution — threshold based
-  // Green  = below threshold (good)
-  // Yellow = at threshold (±0.5 tolerance)
-  // Red    = above threshold (bad)
+  // 🟢 Green  = below threshold (good)
+  // 🟡 Yellow = at threshold (±0.5 tolerance)
+  // 🔴 Red    = above threshold (bad)
   const valueDistribution = useMemo(() => {
     if (!data || data.length === 0 || threshold === null || threshold === undefined) return null;
     const values = data.map(r => parseFloat(r.Value)).filter(v => !isNaN(v));
@@ -80,7 +76,7 @@ const DetailsModal = ({ title, data, columns, loading, onClose, threshold }) => 
     return { good, atThresh, bad, total: values.length };
   }, [data, threshold]);
 
-  // 6. Below Average (lower = better, so below avg = good)
+  // 6. Below Average (lower = better)
   const belowAverage = useMemo(() => {
     if (!data || data.length === 0) return null;
     const values = data.map(r => parseFloat(r.Value)).filter(v => !isNaN(v));
@@ -132,7 +128,7 @@ const DetailsModal = ({ title, data, columns, loading, onClose, threshold }) => 
               <div className="period-snapshot">
                 📋 <strong>{periodSnapshot.total}</strong> records across&nbsp;
                 <strong>{periodSnapshot.uniqueApps}</strong> unique applications&nbsp;|&nbsp;
-                Avg Value: <strong>{periodSnapshot.avg}</strong>&nbsp;|&nbsp;
+                Graph Value: <strong>{clickedValue ?? '-'}</strong>&nbsp;|&nbsp;
                 Unique NARs: <strong>{periodSnapshot.uniqueNARs}</strong>
                 {threshold !== null && threshold !== undefined && (
                   <>&nbsp;|&nbsp;Threshold: <strong>{threshold}</strong></>
@@ -225,7 +221,7 @@ const DetailsModal = ({ title, data, columns, loading, onClose, threshold }) => 
                     </div>
                   )}
 
-                  {/* 4. Value Distribution */}
+                  {/* 4. Value Distribution — threshold based */}
                   {valueDistribution && (
                     <div className="insight-card">
                       <div className="insight-card-title">📊 Value Distribution</div>
