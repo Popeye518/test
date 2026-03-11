@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import './DetailsModal.css';
 
-const DetailsModal = ({ title, data, columns, loading, onClose }) => {
+const DetailsModal = ({ title, data, columns, loading, onClose, threshold }) => {
 
   // ── Table uses FILTERED data (Value > 10) ──
   const filterData = (data) => {
@@ -18,13 +18,13 @@ const DetailsModal = ({ title, data, columns, loading, onClose }) => {
 
   // ── All Insights use RAW data ──
 
-  // 1. Top 3 Best Performers
+  // 1. Top 3 Best Performers — lowest value is best
   const top3Apps = useMemo(() => {
     if (!data || data.length === 0) return [];
     const seen = new Set();
     return data
       .filter(row => row.Application && !isNaN(parseFloat(row.Value)))
-      .sort((a, b) => parseFloat(b.Value) - parseFloat(a.Value))
+      .sort((a, b) => parseFloat(a.Value) - parseFloat(b.Value))
       .filter(row => {
         if (seen.has(row.Application)) return false;
         seen.add(row.Application);
@@ -45,12 +45,12 @@ const DetailsModal = ({ title, data, columns, loading, onClose }) => {
     return sorted.length > 0 ? { name: sorted[0][0], count: sorted[0][1] } : null;
   }, [data]);
 
-  // 3. Lowest Performer
-  const lowestPerformer = useMemo(() => {
+  // 3. Worst Performer — highest value is worst
+  const worstPerformer = useMemo(() => {
     if (!data || data.length === 0) return null;
     return data
       .filter(row => !isNaN(parseFloat(row.Value)))
-      .sort((a, b) => parseFloat(a.Value) - parseFloat(b.Value))[0] || null;
+      .sort((a, b) => parseFloat(b.Value) - parseFloat(a.Value))[0] || null;
   }, [data]);
 
   // 4. Period Snapshot
@@ -66,24 +66,28 @@ const DetailsModal = ({ title, data, columns, loading, onClose }) => {
     return { total, uniqueApps, avg, uniqueNARs };
   }, [data]);
 
-  // 5. Value Distribution
+  // 5. Value Distribution — threshold based
+  // Green  = below threshold (good)
+  // Yellow = at threshold (±0.5 tolerance)
+  // Red    = above threshold (bad)
   const valueDistribution = useMemo(() => {
-    if (!data || data.length === 0) return null;
+    if (!data || data.length === 0 || threshold === null || threshold === undefined) return null;
     const values = data.map(r => parseFloat(r.Value)).filter(v => !isNaN(v));
-    const low  = values.filter(v => v <= 20).length;
-    const mid  = values.filter(v => v > 20 && v <= 50).length;
-    const high = values.filter(v => v > 50).length;
-    return { low, mid, high, total: values.length };
-  }, [data]);
+    const tolerance = 0.5;
+    const good     = values.filter(v => v < threshold - tolerance).length;
+    const atThresh = values.filter(v => v >= threshold - tolerance && v <= threshold + tolerance).length;
+    const bad      = values.filter(v => v > threshold + tolerance).length;
+    return { good, atThresh, bad, total: values.length };
+  }, [data, threshold]);
 
-  // 6. Above Average
-  const aboveAverage = useMemo(() => {
+  // 6. Below Average (lower = better, so below avg = good)
+  const belowAverage = useMemo(() => {
     if (!data || data.length === 0) return null;
     const values = data.map(r => parseFloat(r.Value)).filter(v => !isNaN(v));
     if (!values.length) return null;
     const avg = values.reduce((a, b) => a + b, 0) / values.length;
-    const aboveCount = values.filter(v => v > avg).length;
-    return { aboveCount, total: values.length, avg: avg.toFixed(1) };
+    const goodCount = values.filter(v => v < avg).length;
+    return { goodCount, total: values.length, avg: avg.toFixed(1) };
   }, [data]);
 
   // 7. Repeat Offenders
@@ -123,13 +127,16 @@ const DetailsModal = ({ title, data, columns, loading, onClose }) => {
           </div>
         ) : (
           <>
-            {/* ── Period Snapshot Banner (raw data) ── */}
+            {/* ── Period Snapshot Banner ── */}
             {periodSnapshot && (
               <div className="period-snapshot">
                 📋 <strong>{periodSnapshot.total}</strong> records across&nbsp;
                 <strong>{periodSnapshot.uniqueApps}</strong> unique applications&nbsp;|&nbsp;
                 Avg Value: <strong>{periodSnapshot.avg}</strong>&nbsp;|&nbsp;
                 Unique NARs: <strong>{periodSnapshot.uniqueNARs}</strong>
+                {threshold !== null && threshold !== undefined && (
+                  <>&nbsp;|&nbsp;Threshold: <strong>{threshold}</strong></>
+                )}
               </div>
             )}
 
@@ -157,8 +164,8 @@ const DetailsModal = ({ title, data, columns, loading, onClose }) => {
               )}
             </div>
 
-            {/* ── Insights (all on raw data) ── */}
-            {(top3Apps.length > 0 || mostFrequentApp || lowestPerformer) && (
+            {/* ── Insights ── */}
+            {(top3Apps.length > 0 || mostFrequentApp || worstPerformer) && (
               <div className="insights-section">
                 <h3 className="insights-heading">📊 Insights</h3>
                 <div className="insights-grid">
@@ -167,6 +174,7 @@ const DetailsModal = ({ title, data, columns, loading, onClose }) => {
                   {top3Apps.length > 0 && (
                     <div className="insight-card">
                       <div className="insight-card-title">🏆 Top Performers</div>
+                      <div className="insight-card-subtitle">Lower value = better</div>
                       <div className="top-apps-list">
                         {top3Apps.map((app, i) => (
                           <div
@@ -185,7 +193,7 @@ const DetailsModal = ({ title, data, columns, loading, onClose }) => {
                     </div>
                   )}
 
-                  {/* 2. Most Frequent Application */}
+                  {/* 2. Most Frequent */}
                   {mostFrequentApp && (
                     <div className="insight-card">
                       <div className="insight-card-title">⚠️ Most Frequent</div>
@@ -198,20 +206,20 @@ const DetailsModal = ({ title, data, columns, loading, onClose }) => {
                     </div>
                   )}
 
-                  {/* 3. Lowest Performer */}
-                  {lowestPerformer && (
+                  {/* 3. Worst Performer */}
+                  {worstPerformer && (
                     <div className="insight-card">
-                      <div className="insight-card-title">📉 Lowest Performer</div>
+                      <div className="insight-card-title">📉 Worst Performer</div>
                       <div className="insight-highlight-box red">
-                        <span className="insight-big-text">{lowestPerformer.Application}</span>
+                        <span className="insight-big-text">{worstPerformer.Application}</span>
                         <span className="insight-sub-text">
-                          Value: <strong>{parseFloat(lowestPerformer.Value).toFixed(1)}</strong>
+                          Value: <strong>{parseFloat(worstPerformer.Value).toFixed(1)}</strong>
                         </span>
-                        {lowestPerformer.Change_ID && (
-                          <span className="insight-sub-text">Change ID: {lowestPerformer.Change_ID}</span>
+                        {worstPerformer.Change_ID && (
+                          <span className="insight-sub-text">Change ID: {worstPerformer.Change_ID}</span>
                         )}
-                        {lowestPerformer.Incident_ID && (
-                          <span className="insight-sub-text">Incident ID: {lowestPerformer.Incident_ID}</span>
+                        {worstPerformer.Incident_ID && (
+                          <span className="insight-sub-text">Incident ID: {worstPerformer.Incident_ID}</span>
                         )}
                       </div>
                     </div>
@@ -221,52 +229,54 @@ const DetailsModal = ({ title, data, columns, loading, onClose }) => {
                   {valueDistribution && (
                     <div className="insight-card">
                       <div className="insight-card-title">📊 Value Distribution</div>
+                      <div className="insight-card-subtitle">Threshold: {threshold}</div>
                       <div className="distribution-list">
                         <div className="dist-row">
-                          <span className="dist-label">🟢 High (&gt;50)</span>
+                          <span className="dist-label">🟢 Below (&lt;{threshold})</span>
                           <span className="dist-bar-wrap">
                             <span
                               className="dist-bar green"
-                              style={{ width: `${(valueDistribution.high / valueDistribution.total) * 100}%` }}
+                              style={{ width: `${(valueDistribution.good / valueDistribution.total) * 100}%` }}
                             />
                           </span>
-                          <span className="dist-count">{valueDistribution.high}</span>
+                          <span className="dist-count">{valueDistribution.good}</span>
                         </div>
                         <div className="dist-row">
-                          <span className="dist-label">🟡 Mid (21–50)</span>
+                          <span className="dist-label">🟡 At (~{threshold})</span>
                           <span className="dist-bar-wrap">
                             <span
                               className="dist-bar yellow"
-                              style={{ width: `${(valueDistribution.mid / valueDistribution.total) * 100}%` }}
+                              style={{ width: `${(valueDistribution.atThresh / valueDistribution.total) * 100}%` }}
                             />
                           </span>
-                          <span className="dist-count">{valueDistribution.mid}</span>
+                          <span className="dist-count">{valueDistribution.atThresh}</span>
                         </div>
                         <div className="dist-row">
-                          <span className="dist-label">🔴 Low (≤20)</span>
+                          <span className="dist-label">🔴 Above (&gt;{threshold})</span>
                           <span className="dist-bar-wrap">
                             <span
                               className="dist-bar red"
-                              style={{ width: `${(valueDistribution.low / valueDistribution.total) * 100}%` }}
+                              style={{ width: `${(valueDistribution.bad / valueDistribution.total) * 100}%` }}
                             />
                           </span>
-                          <span className="dist-count">{valueDistribution.low}</span>
+                          <span className="dist-count">{valueDistribution.bad}</span>
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {/* 5. Above Average */}
-                  {aboveAverage && (
+                  {/* 5. Below Average */}
+                  {belowAverage && (
                     <div className="insight-card">
-                      <div className="insight-card-title">✅ Above Average</div>
+                      <div className="insight-card-title">✅ Below Average</div>
+                      <div className="insight-card-subtitle">Below avg = performing better</div>
                       <div className="insight-highlight-box blue">
                         <span className="insight-big-number">
-                          {aboveAverage.aboveCount}
-                          <span className="insight-out-of">/{aboveAverage.total}</span>
+                          {belowAverage.goodCount}
+                          <span className="insight-out-of">/{belowAverage.total}</span>
                         </span>
                         <span className="insight-sub-text">
-                          records above avg value of <strong>{aboveAverage.avg}</strong>
+                          records below avg value of <strong>{belowAverage.avg}</strong>
                         </span>
                       </div>
                     </div>
