@@ -1,0 +1,196 @@
+/* ── Existing styles (unchanged) ── */
+.details-modal-content {
+  background-color: #fff;
+  margin: 5% auto;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  width: 80%;
+  max-width: 1200px;
+  position: relative;
+}
+
+.details-table-container {
+  max-height: 45vh;
+  overflow-y: auto;
+  margin-top: 16px;
+}
+
+.details-table-container table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.details-table-container th,
+.details-table-container td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+
+.details-table-container th {
+  background-color: #f7fafc;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.details-table-container tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* ── Row hover ── */
+.table-row-hover:hover {
+  background-color: #eef4ff !important;
+  transition: background-color 0.2s ease;
+}
+
+/* ── Period Snapshot Banner ── */
+.period-snapshot {
+  margin-top: 14px;
+  padding: 10px 16px;
+  background: #f0f4ff;
+  border-left: 4px solid #4a6cf7;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #2d3a6b;
+  line-height: 1.6;
+}
+
+/* ── Insights Section ── */
+.insights-section {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 2px dashed #e0e7f3;
+}
+
+.insights-heading {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #2d3a6b;
+  margin-bottom: 12px;
+}
+
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.insight-card {
+  background: #fafbff;
+  border: 1px solid #e0e7f3;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.insight-card-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7a99;
+  margin-bottom: 10px;
+}
+
+/* Top Performers */
+.top-apps-list { display: flex; flex-direction: column; gap: 8px; }
+
+.top-app-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #eef0f8;
+  transition: background 0.2s ease;
+}
+
+.top-app-row:hover { background: #f0f4ff; }
+.top-app-medal { font-size: 1.2rem; }
+.top-app-info { display: flex; flex-direction: column; }
+.top-app-name { font-size: 0.83rem; font-weight: 600; color: #1a2340; }
+.top-app-score { font-size: 0.73rem; color: #6b7a99; }
+
+/* Highlight Boxes */
+.insight-highlight-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+
+.insight-highlight-box.orange { background: #fff7ed; border: 1px solid #fcd9a0; }
+.insight-highlight-box.red    { background: #fff1f1; border: 1px solid #fbbcbc; }
+.insight-highlight-box.blue   { background: #f0f7ff; border: 1px solid #bdd6f8; }
+
+.insight-big-text { font-size: 0.92rem; font-weight: 700; color: #1a2340; }
+.insight-sub-text { font-size: 0.76rem; color: #6b7a99; }
+
+.insight-big-number {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #2563eb;
+  line-height: 1;
+}
+
+.insight-out-of { font-size: 1rem; color: #6b7a99; font-weight: 500; }
+
+/* Value Distribution */
+.distribution-list { display: flex; flex-direction: column; gap: 8px; }
+
+.dist-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dist-label { font-size: 0.73rem; color: #444; min-width: 90px; }
+
+.dist-bar-wrap {
+  flex: 1;
+  background: #eef0f8;
+  border-radius: 99px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.dist-bar {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  min-width: 4px;
+  transition: width 0.6s ease;
+}
+
+.dist-bar.green  { background: #22c55e; }
+.dist-bar.yellow { background: #f59e0b; }
+.dist-bar.red    { background: #ef4444; }
+.dist-count { font-size: 0.78rem; font-weight: 600; color: #2d3a6b; min-width: 20px; text-align: right; }
+
+/* Repeat Offenders */
+.repeat-list { display: flex; flex-direction: column; gap: 6px; }
+
+.repeat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 10px;
+  background: #fff;
+  border: 1px solid #eef0f8;
+  border-radius: 6px;
+}
+
+.repeat-name { font-size: 0.82rem; font-weight: 500; color: #1a2340; }
+
+.repeat-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 2px 8px;
+  border-radius: 99px;
+}
