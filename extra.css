@@ -1,0 +1,37 @@
+/* ── Modal Overlay — centers and contains ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-y: auto;
+  padding: 16px;
+  z-index: 9999;
+  box-sizing: border-box;
+}
+
+/* ── Modal Content — fits screen height ── */
+.details-modal-content {
+  background-color: #fff;
+  margin: 0 auto;
+  padding: 24px 28px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 1400px;
+  max-height: 95vh;        /* ← never exceeds screen height */
+  overflow-y: auto;        /* ← whole modal scrolls if content too tall */
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* ── Table — smaller fixed height so insights always visible ── */
+.details-table-container {
+  max-height: 25vh;        /* ← reduced so insights section is always visible */
+  overflow-y: auto;
+  margin-top: 20px;
+  border-radius: 8px;
+  border: 1px solid #e0e7f3;
+}
