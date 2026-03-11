@@ -258,4 +258,25 @@
 .dist-block-count { font-size: 0.74rem; color: #6b7a99; font-weight: 500; }
 
 /* Repeat Offenders */
-.re
+.repeat-list { display: flex; flex-direction: column; gap: 8px; }
+
+.repeat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 12px;
+  background: #fff;
+  border: 1px solid #eef0f8;
+  border-radius: 8px;
+}
+
+.repeat-name { font-size: 0.88rem; font-weight: 500; color: #1a2340; }
+
+.repeat-badge {
+  font-size: 0.76rem;
+  font-weight: 700;
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 3px 10px;
+  border-radius: 99px;
+}
