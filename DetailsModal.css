@@ -163,13 +163,10 @@
   align-items: stretch;
 }
 
-.second-row-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
+.full-width-row {
+  margin-bottom: 16px;
 }
 
-/* ── Insight Card ── */
 .insight-card {
   background: #fafbff;
   border: 1px solid #e0e7f3;
@@ -322,69 +319,32 @@
   font-weight: 500;
 }
 
-/* ── Attention Card ── */
-.attention-card {
+/* ── Value Distribution ── */
+.value-distribution-card {
   min-height: 100%;
 }
 
-.attention-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-height: 420px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.attention-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px 16px;
-  background: #fff7f7;
-  border: 1px solid #ffd6d6;
-  border-radius: 10px;
-}
-
-.attention-icon {
-  font-size: 1.3rem;
-  line-height: 1.2;
-}
-
-.attention-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.attention-name {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #1a2340;
-}
-
-.attention-meta {
-  font-size: 1rem;
-  color: #6b7a99;
-}
-
-/* ── Value Distribution ── */
 .distribution-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
+.distribution-list-large {
+  gap: 18px;
+  padding-top: 8px;
+}
+
 .dist-block {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .dist-block-label {
-  font-size: 0.78rem;
+  font-size: 1rem;
   color: #444;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .dist-bar-wrap {
@@ -393,6 +353,10 @@
   border-radius: 99px;
   height: 10px;
   overflow: hidden;
+}
+
+.large-bar-wrap {
+  height: 16px;
 }
 
 .dist-bar {
@@ -416,9 +380,62 @@
 }
 
 .dist-block-count {
-  font-size: 0.74rem;
+  font-size: 1rem;
   color: #6b7a99;
   font-weight: 500;
+}
+
+/* ── Attention / Below Average ── */
+.attention-card,
+.below-average-card {
+  min-height: 100%;
+}
+
+.attention-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.attention-row,
+.below-average-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fff7f7;
+  border: 1px solid #ffd6d6;
+  border-radius: 10px;
+}
+
+.below-average-box {
+  background: #f0f7ff;
+  border: 1px solid #bdd6f8;
+}
+
+.attention-icon {
+  font-size: 1.3rem;
+  line-height: 1.2;
+}
+
+.attention-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attention-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1a2340;
+}
+
+.attention-meta {
+  font-size: 1rem;
+  color: #6b7a99;
 }
 
 /* ── Loading ── */
@@ -473,10 +490,6 @@
     padding: 22px 18px;
   }
 
-  .second-row-grid {
-    grid-template-columns: 1fr;
-  }
-
   .insight-card-title {
     font-size: 1.2rem;
   }
@@ -492,7 +505,9 @@
     font-size: 1.1rem;
   }
 
-  .attention-meta {
+  .attention-meta,
+  .dist-block-count,
+  .dist-block-label {
     font-size: 0.95rem;
   }
 }
