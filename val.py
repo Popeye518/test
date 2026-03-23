@@ -482,6 +482,19 @@ def run_validation(template_json_path: str,
                 )))
 
             status = (p_json.get("status") if isinstance(p_json, dict) else None) or "MISSING"
+            status = (p_json.get("status") if isinstance(p_json, dict) else None) or "MISSING"
+            justification = p_json.get("justification", "") if isinstance(p_json, dict) else ""
+
+            tag_l = (tag or "").strip().lower()
+
+            if tag_l in {"0.1 nar id", "nar id"} and nar_id:
+            status = "PRESENT"
+            justification = f"NAR ID '{nar_id}' was resolved from evidence."
+
+            if tag_l in {"0.2 app name", "0.2 application name", "app name", "application name"} and application_name:
+            status = "PRESENT"
+            justification = f"Application name '{application_name}' was resolved from evidence."
+            
             if mreq:
                 must_total += 1
                 if status == "PRESENT":
