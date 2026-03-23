@@ -177,7 +177,12 @@ const DetailsModal = ({
                     <div className="insight-card top-performers-card">
                       <div className="top-performers-header">
                         <div>
-                          <div className="insight-card-title">Best Observed Applications</div>
+                          <div className="insight-card-title">
+                            <span className="title-with-icon">
+                              <span className="title-icon">🌟</span>
+                              <span>Best Observed Applications</span>
+                            </span>
+                          </div>
                           <div className="insight-card-subtitle">Lowest values in selected data</div>
                         </div>
                       </div>
@@ -198,7 +203,12 @@ const DetailsModal = ({
                   )}
 
                   <div className="insight-card attention-card">
-                    <div className="insight-card-title">Needs Attention</div>
+                    <div className="insight-card-title">
+                      <span className="title-with-icon">
+                        <span className="title-icon">⚠️</span>
+                        <span>Needs Attention</span>
+                      </span>
+                    </div>
                     <div className="insight-card-subtitle">
                       Applications with value above {alertThreshold}
                     </div>
@@ -231,7 +241,12 @@ const DetailsModal = ({
                 <div className="second-row-grid">
                   {valueDistribution && (
                     <div className="insight-card value-distribution-card">
-                      <div className="insight-card-title">Value Distribution</div>
+                      <div className="insight-card-title">
+                        <span className="title-with-icon">
+                          <span className="title-icon">📊</span>
+                          <span>Value Distribution</span>
+                        </span>
+                      </div>
                       <div className="insight-card-subtitle">Threshold {threshold}</div>
 
                       <div className="distribution-list distribution-list-large">
@@ -273,7 +288,12 @@ const DetailsModal = ({
 
                   {belowAverage && (
                     <div className="insight-card below-average-card">
-                      <div className="insight-card-title">Below Average</div>
+                      <div className="insight-card-title">
+                        <span className="title-with-icon">
+                          <span className="title-icon">📉</span>
+                          <span>Below Average</span>
+                        </span>
+                      </div>
                       <div className="insight-card-subtitle">Lower value performing better</div>
 
                       <div className="below-average-box">
