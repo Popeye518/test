@@ -286,6 +286,57 @@
   line-height: 1.4;
 }
 
+.top-tile-subtext {
+  font-size: 0.9rem;
+  color: #6b7a99;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.attention-card {
+  grid-column: 1 / -1;
+}
+
+.attention-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.attention-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #fff7f7;
+  border: 1px solid #ffd6d6;
+  border-radius: 10px;
+}
+
+.attention-icon {
+  font-size: 1.1rem;
+  line-height: 1.2;
+}
+
+.attention-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attention-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a2340;
+}
+
+.attention-meta {
+  font-size: 0.9rem;
+  color: #6b7a99;
+}
+
 /* ── Value Distribution ── */
 .distribution-list {
   display: flex;
