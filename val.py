@@ -536,8 +536,13 @@ def run_validation(template_json_path: str,
 
 def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary_report.pdf") -> bool:
     try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.pdfgen import canvas
+        from reportlab.pdfbase.pdfmetrics import stringWidth
+
         summary = result.get("summary", {})
         per_intent = result.get("per_intent", [])
+        architecture = summary.get("architecture", {}) or {}
 
         nar_id = summary.get("nar_id", "")
         application_name = summary.get("application_name", "")
@@ -548,73 +553,109 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
         must_have_diff = must_have_total - must_have_met
         must_have_coverage = summary.get("must_have_coverage_pct", 0.0)
 
+        architecture_summary = architecture.get("summary", "")
+        if not architecture_summary:
+            architecture_summary = (
+                f"This report is for NAR ID {nar_id}, application {application_name}, "
+                f"release {release_number}, and rtype {rtype}."
+            )
+
         missing_or_partial = []
         for item in per_intent:
             if item.get("mustHave") and item.get("status") != "PRESENT":
                 tag = item.get("tag", "")
                 status = item.get("status", "")
                 justification = item.get("justification", "")
-                missing_or_partial.append(f"- {tag} [{status}]: {justification}")
+                line = f"- {tag} [{status}]"
+                if justification:
+                    line += f": {justification}"
+                missing_or_partial.append(line)
 
         if must_have_diff == 0:
             gap_reason = "All must-have requirements are PRESENT, so there is no gap."
         else:
-            reasons = missing_or_partial[:10]
-            joined = "\n".join(reasons) if reasons else "Some must-have items are not in PRESENT status."
+            details = "\n".join(missing_or_partial[:15]) if missing_or_partial else "Some must-have items are not in PRESENT status."
             gap_reason = (
-                f"Difference is {must_have_diff} because these must-have items are not fully met:\n{joined}"
+                f"Difference is {must_have_diff} because these must-have items are not fully met:\n"
+                f"{details}"
             )
-
-        summary_text = (
-            f"This report is for NAR ID {nar_id}, application {application_name}, "
-            f"release {release_number}, and rtype {rtype}. "
-            f"Must-have coverage is {must_have_met}/{must_have_total} "
-            f"({must_have_coverage:.1f}%)."
-        )
 
         c = canvas.Canvas(pdf_output_path, pagesize=A4)
         width, height = A4
-        y = height - 50
+        left_margin = 50
+        right_margin = 50
+        top_margin = 50
+        bottom_margin = 50
+        usable_width = width - left_margin - right_margin
+        y = height - top_margin
 
-        def write_line(text, font="Helvetica", size=11, gap=18):
+        def new_page():
             nonlocal y
-            if y < 60:
-                c.showPage()
-                y = height - 50
-            c.setFont(font, size)
-            c.drawString(50, y, text[:115])
-            y -= gap
+            c.showPage()
+            y = height - top_margin
 
-        def write_multiline(text, font="Helvetica", size=11, gap=16):
+        def ensure_space(lines_needed=1, line_gap=16):
             nonlocal y
-            c.setFont(font, size)
-            for line in text.split("\n"):
-                if y < 60:
-                    c.showPage()
-                    y = height - 50
-                    c.setFont(font, size)
-                c.drawString(50, y, line[:115])
-                y -= gap
+            if y - (lines_needed * line_gap) < bottom_margin:
+                new_page()
 
-        write_line("SUMMARY REPORT", "Helvetica-Bold", 16, 25)
-        write_line(f"NAR ID: {nar_id}", "Helvetica-Bold")
-        write_line(f"Application Name: {application_name}")
-        write_line(f"Release Number: {release_number}")
-        write_line(f"rtype: {rtype}")
-        y -= 10
+        def wrap_text(text, font_name="Helvetica", font_size=11, max_width=usable_width):
+            if not text:
+                return [""]
+            wrapped_lines = []
+            for paragraph in str(text).split("\n"):
+                words = paragraph.split()
+                if not words:
+                    wrapped_lines.append("")
+                    continue
 
-        write_line("Summary:", "Helvetica-Bold", 12)
-        write_multiline(summary_text)
-        y -= 5
+                current = words[0]
+                for word in words[1:]:
+                    trial = current + " " + word
+                    if stringWidth(trial, font_name, font_size) <= max_width:
+                        current = trial
+                    else:
+                        wrapped_lines.append(current)
+                        current = word
+                wrapped_lines.append(current)
+            return wrapped_lines
 
-        write_line("Must-Have Metrics:", "Helvetica-Bold", 12)
-        write_line(f"Must Have Total: {must_have_total}")
-        write_line(f"Must Have Met: {must_have_met}")
-        write_line(f"Difference: {must_have_diff}")
-        y -= 5
+        def write_block(text, font_name="Helvetica", font_size=11, line_gap=16, extra_gap=6):
+            nonlocal y
+            lines = wrap_text(text, font_name, font_size, usable_width)
+            ensure_space(len(lines), line_gap)
+            c.setFont(font_name, font_size)
+            for line in lines:
+                if y < bottom_margin + line_gap:
+                    new_page()
+                    c.setFont(font_name, font_size)
+                c.drawString(left_margin, y, line)
+                y -= line_gap
+            y -= extra_gap
 
-        write_line("Justification:", "Helvetica-Bold", 12)
-        write_multiline(gap_reason)
+        # Title
+        write_block("SUMMARY REPORT", "Helvetica-Bold", 16, 20, 10)
+
+        # Basic details
+        write_block(f"NAR ID: {nar_id}", "Helvetica-Bold", 11, 16, 0)
+        write_block(f"Application Name: {application_name}", "Helvetica", 11, 16, 0)
+        write_block(f"Release Number: {release_number}", "Helvetica", 11, 16, 0)
+        write_block(f"rtype: {rtype}", "Helvetica", 11, 16, 10)
+
+        # Summary section from architecture.summary
+        write_block("Summary:", "Helvetica-Bold", 12, 18, 4)
+        write_block(architecture_summary, "Helvetica", 11, 16, 10)
+
+        # Must-have metrics
+        write_block("Must-Have Metrics:", "Helvetica-Bold", 12, 18, 4)
+        write_block(f"Must Have Total: {must_have_total}", "Helvetica", 11, 16, 0)
+        write_block(f"Must Have Met: {must_have_met}", "Helvetica", 11, 16, 0)
+        write_block(f"Difference: {must_have_diff}", "Helvetica", 11, 16, 0)
+        write_block(f"Coverage: {must_have_coverage:.1f}%", "Helvetica", 11, 16, 10)
+
+        # Justification section
+        write_block("Justification:", "Helvetica-Bold", 12, 18, 4)
+        write_block(gap_reason, "Helvetica", 11, 16, 0)
 
         c.save()
         logging.info(f"PDF Summary Report generated: {pdf_output_path}")
