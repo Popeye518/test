@@ -51,22 +51,6 @@ const DetailsModal = ({
       }));
   }, [data]);
 
-  const mostFrequentApp = useMemo(() => {
-    if (!data || data.length === 0) return null;
-
-    const countMap = {};
-    data.forEach((row) => {
-      if (row.Application) {
-        countMap[row.Application] = (countMap[row.Application] || 0) + 1;
-      }
-    });
-
-    const sorted = Object.entries(countMap).sort((a, b) => b[1] - a[1]);
-    return sorted.length > 0
-      ? { name: sorted[0][0], count: sorted[0][1] }
-      : null;
-  }, [data]);
-
   const attentionApps = useMemo(() => {
     if (!data || data.length === 0) return [];
 
@@ -184,7 +168,7 @@ const DetailsModal = ({
               )}
             </div>
 
-            {(top3Apps.length > 0 || mostFrequentApp || attentionApps.length > 0 || valueDistribution || belowAverage) && (
+            {(top3Apps.length > 0 || attentionApps.length > 0 || valueDistribution || belowAverage) && (
               <div className="insights-section">
                 <h3 className="insights-heading">Insights</h3>
 
@@ -213,6 +197,50 @@ const DetailsModal = ({
                     </div>
                   )}
 
+                  {valueDistribution && (
+                    <div className="insight-card value-distribution-card">
+                      <div className="insight-card-title">Value Distribution</div>
+                      <div className="insight-card-subtitle">Threshold {threshold}</div>
+
+                      <div className="distribution-list distribution-list-large">
+                        <div className="dist-block">
+                          <span className="dist-block-label">Below &lt; {threshold}</span>
+                          <div className="dist-bar-wrap large-bar-wrap">
+                            <span
+                              className="dist-bar green"
+                              style={{ width: `${(valueDistribution.good / valueDistribution.total) * 100}%` }}
+                            ></span>
+                          </div>
+                          <span className="dist-block-count">{valueDistribution.good} records</span>
+                        </div>
+
+                        <div className="dist-block">
+                          <span className="dist-block-label">At threshold</span>
+                          <div className="dist-bar-wrap large-bar-wrap">
+                            <span
+                              className="dist-bar yellow"
+                              style={{ width: `${(valueDistribution.atThresh / valueDistribution.total) * 100}%` }}
+                            ></span>
+                          </div>
+                          <span className="dist-block-count">{valueDistribution.atThresh} records</span>
+                        </div>
+
+                        <div className="dist-block">
+                          <span className="dist-block-label">Above &gt; {threshold}</span>
+                          <div className="dist-bar-wrap large-bar-wrap">
+                            <span
+                              className="dist-bar red"
+                              style={{ width: `${(valueDistribution.bad / valueDistribution.total) * 100}%` }}
+                            ></span>
+                          </div>
+                          <span className="dist-block-count">{valueDistribution.bad} records</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="full-width-row">
                   <div className="insight-card attention-card">
                     <div className="insight-card-title">Needs Attention</div>
                     <div className="insight-card-subtitle">
@@ -244,80 +272,26 @@ const DetailsModal = ({
                   </div>
                 </div>
 
-                <div className="second-row-grid">
-                  {mostFrequentApp && (
-                    <div className="insight-card">
-                      <div className="insight-card-title">Most Frequent</div>
-                      <div className="insight-highlight-box orange">
-                        <span className="insight-big-text">{mostFrequentApp.name}</span>
-                        <span className="insight-sub-text">
-                          Appears <strong>{mostFrequentApp.count}</strong> times in this period
-                        </span>
-                        <span className="insight-sub-text">
-                          Based on number of records, not releases or failures
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {valueDistribution && (
-                    <div className="insight-card">
-                      <div className="insight-card-title">Value Distribution</div>
-                      <div className="insight-card-subtitle">Threshold {threshold}</div>
-
-                      <div className="distribution-list">
-                        <div className="dist-block">
-                          <span className="dist-block-label">Below &lt; {threshold}</span>
-                          <div className="dist-bar-wrap">
-                            <span
-                              className="dist-bar green"
-                              style={{ width: `${(valueDistribution.good / valueDistribution.total) * 100}%` }}
-                            ></span>
-                          </div>
-                          <span className="dist-block-count">{valueDistribution.good} records</span>
-                        </div>
-
-                        <div className="dist-block">
-                          <span className="dist-block-label">At threshold</span>
-                          <div className="dist-bar-wrap">
-                            <span
-                              className="dist-bar yellow"
-                              style={{ width: `${(valueDistribution.atThresh / valueDistribution.total) * 100}%` }}
-                            ></span>
-                          </div>
-                          <span className="dist-block-count">{valueDistribution.atThresh} records</span>
-                        </div>
-
-                        <div className="dist-block">
-                          <span className="dist-block-label">Above &gt; {threshold}</span>
-                          <div className="dist-bar-wrap">
-                            <span
-                              className="dist-bar red"
-                              style={{ width: `${(valueDistribution.bad / valueDistribution.total) * 100}%` }}
-                            ></span>
-                          </div>
-                          <span className="dist-block-count">{valueDistribution.bad} records</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {belowAverage && (
-                    <div className="insight-card">
+                {belowAverage && (
+                  <div className="full-width-row">
+                    <div className="insight-card below-average-card">
                       <div className="insight-card-title">Below Average</div>
                       <div className="insight-card-subtitle">Lower value performing better</div>
-                      <div className="insight-highlight-box blue">
-                        <span className="insight-big-number">
-                          {belowAverage.goodCount}
-                          <span className="insight-out-of">/{belowAverage.total}</span>
-                        </span>
-                        <span className="insight-sub-text">
-                          Records below avg value of <strong>{belowAverage.avg}</strong>
-                        </span>
+
+                      <div className="below-average-box">
+                        <span className="attention-icon">📊</span>
+                        <div className="attention-content">
+                          <span className="attention-name">
+                            {belowAverage.goodCount}/{belowAverage.total} records
+                          </span>
+                          <span className="attention-meta">
+                            Below average value of {belowAverage.avg}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
           </>
