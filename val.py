@@ -3,6 +3,9 @@ import hashlib  # ✅ ADDED
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
 
 # ... (keep all your existing imports above unchanged) ...
 
@@ -536,9 +539,10 @@ def run_validation(template_json_path: str,
 
 def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary_report.pdf") -> bool:
     try:
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib import colors
         from reportlab.lib.pagesizes import A4
-        from reportlab.pdfgen import canvas
-        from reportlab.pdfbase.pdfmetrics import stringWidth
 
         summary = result.get("summary", {})
         per_intent = result.get("per_intent", [])
@@ -560,104 +564,88 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
                 f"release {release_number}, and rtype {rtype}."
             )
 
-        missing_or_partial = []
+        doc = SimpleDocTemplate(
+            pdf_output_path,
+            pagesize=A4,
+            leftMargin=40,
+            rightMargin=40,
+            topMargin=40,
+            bottomMargin=40,
+        )
+
+        styles = getSampleStyleSheet()
+        story = []
+
+        title_style = styles["Heading1"]
+        heading_style = styles["Heading2"]
+        normal_style = styles["BodyText"]
+
+        story.append(Paragraph("SUMMARY REPORT", title_style))
+        story.append(Spacer(1, 12))
+
+        story.append(Paragraph(f"<b>NAR ID:</b> {nar_id}", normal_style))
+        story.append(Paragraph(f"<b>Application Name:</b> {application_name}", normal_style))
+        story.append(Paragraph(f"<b>Release Number:</b> {release_number}", normal_style))
+        story.append(Paragraph(f"<b>rtype:</b> {rtype}", normal_style))
+        story.append(Spacer(1, 12))
+
+        story.append(Paragraph("Summary", heading_style))
+        story.append(Paragraph(architecture_summary, normal_style))
+        story.append(Spacer(1, 12))
+
+        story.append(Paragraph("Must-Have Metrics", heading_style))
+        story.append(Paragraph(f"<b>Must Have Total:</b> {must_have_total}", normal_style))
+        story.append(Paragraph(f"<b>Must Have Met:</b> {must_have_met}", normal_style))
+        story.append(Paragraph(f"<b>Difference:</b> {must_have_diff}", normal_style))
+        story.append(Paragraph(f"<b>Coverage:</b> {must_have_coverage:.1f}%", normal_style))
+        story.append(Spacer(1, 12))
+
+        story.append(Paragraph("Justification", heading_style))
+
+        table_data = [
+            [
+                Paragraph("<b>Name</b>", normal_style),
+                Paragraph("<b>Justification</b>", normal_style),
+            ]
+        ]
+
+        found_rows = 0
         for item in per_intent:
             if item.get("mustHave") and item.get("status") != "PRESENT":
-                tag = item.get("tag", "")
+                name = item.get("tag", "") or item.get("intent", "") or "N/A"
                 status = item.get("status", "")
-                justification = item.get("justification", "")
-                line = f"- {tag} [{status}]"
-                if justification:
-                    line += f": {justification}"
-                missing_or_partial.append(line)
+                justification = item.get("justification", "") or "No justification available."
 
-        if must_have_diff == 0:
-            gap_reason = "All must-have requirements are PRESENT, so there is no gap."
-        else:
-            details = "\n".join(missing_or_partial[:15]) if missing_or_partial else "Some must-have items are not in PRESENT status."
-            gap_reason = (
-                f"Difference is {must_have_diff} because these must-have items are not fully met:\n"
-                f"{details}"
-            )
+                justification_text = f"[{status}] {justification}" if status else justification
 
-        c = canvas.Canvas(pdf_output_path, pagesize=A4)
-        width, height = A4
-        left_margin = 50
-        right_margin = 50
-        top_margin = 50
-        bottom_margin = 50
-        usable_width = width - left_margin - right_margin
-        y = height - top_margin
+                table_data.append([
+                    Paragraph(str(name), normal_style),
+                    Paragraph(str(justification_text), normal_style),
+                ])
+                found_rows += 1
 
-        def new_page():
-            nonlocal y
-            c.showPage()
-            y = height - top_margin
+        if found_rows == 0:
+            table_data.append([
+                Paragraph("No Gap", normal_style),
+                Paragraph("All must-have requirements are PRESENT, so there is no justification gap.", normal_style),
+            ])
 
-        def ensure_space(lines_needed=1, line_gap=16):
-            nonlocal y
-            if y - (lines_needed * line_gap) < bottom_margin:
-                new_page()
+        justification_table = Table(table_data, colWidths=[160, 330])
+        justification_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#d9eaf7")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("GRID", (0, 0), (-1, -1), 0.75, colors.grey),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]))
 
-        def wrap_text(text, font_name="Helvetica", font_size=11, max_width=usable_width):
-            if not text:
-                return [""]
-            wrapped_lines = []
-            for paragraph in str(text).split("\n"):
-                words = paragraph.split()
-                if not words:
-                    wrapped_lines.append("")
-                    continue
+        story.append(justification_table)
 
-                current = words[0]
-                for word in words[1:]:
-                    trial = current + " " + word
-                    if stringWidth(trial, font_name, font_size) <= max_width:
-                        current = trial
-                    else:
-                        wrapped_lines.append(current)
-                        current = word
-                wrapped_lines.append(current)
-            return wrapped_lines
-
-        def write_block(text, font_name="Helvetica", font_size=11, line_gap=16, extra_gap=6):
-            nonlocal y
-            lines = wrap_text(text, font_name, font_size, usable_width)
-            ensure_space(len(lines), line_gap)
-            c.setFont(font_name, font_size)
-            for line in lines:
-                if y < bottom_margin + line_gap:
-                    new_page()
-                    c.setFont(font_name, font_size)
-                c.drawString(left_margin, y, line)
-                y -= line_gap
-            y -= extra_gap
-
-        # Title
-        write_block("SUMMARY REPORT", "Helvetica-Bold", 16, 20, 10)
-
-        # Basic details
-        write_block(f"NAR ID: {nar_id}", "Helvetica-Bold", 11, 16, 0)
-        write_block(f"Application Name: {application_name}", "Helvetica", 11, 16, 0)
-        write_block(f"Release Number: {release_number}", "Helvetica", 11, 16, 0)
-        write_block(f"rtype: {rtype}", "Helvetica", 11, 16, 10)
-
-        # Summary section from architecture.summary
-        write_block("Summary:", "Helvetica-Bold", 12, 18, 4)
-        write_block(architecture_summary, "Helvetica", 11, 16, 10)
-
-        # Must-have metrics
-        write_block("Must-Have Metrics:", "Helvetica-Bold", 12, 18, 4)
-        write_block(f"Must Have Total: {must_have_total}", "Helvetica", 11, 16, 0)
-        write_block(f"Must Have Met: {must_have_met}", "Helvetica", 11, 16, 0)
-        write_block(f"Difference: {must_have_diff}", "Helvetica", 11, 16, 0)
-        write_block(f"Coverage: {must_have_coverage:.1f}%", "Helvetica", 11, 16, 10)
-
-        # Justification section
-        write_block("Justification:", "Helvetica-Bold", 12, 18, 4)
-        write_block(gap_reason, "Helvetica", 11, 16, 0)
-
-        c.save()
+        doc.build(story)
         logging.info(f"PDF Summary Report generated: {pdf_output_path}")
         return True
 
