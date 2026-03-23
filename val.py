@@ -583,8 +583,8 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
             )
 
         result_status = "PASS" if must_have_total == must_have_met else "FAIL"
-        result_bg_color = colors.HexColor("#d4edda") if result_status == "PASS" else colors.HexColor("#f8d7da")
-        result_text_color = colors.HexColor("#155724") if result_status == "PASS" else colors.HexColor("#721c24")
+        result_bg_color = colors.HexColor("#eaf7ee") if result_status == "PASS" else colors.HexColor("#fdeeee")
+        result_text_color = colors.HexColor("#2e7d32") if result_status == "PASS" else colors.HexColor("#b55a5a")
 
         doc = SimpleDocTemplate(
             pdf_output_path,
@@ -607,19 +607,6 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
             fontName="Helvetica-Bold",
         )
 
-        heading_style = ParagraphStyle(
-            "CustomHeading",
-            parent=styles["Heading2"],
-            fontSize=13,
-            textColor=colors.white,
-            backColor=colors.HexColor("#2d7fa3"),
-            spaceAfter=10,
-            spaceBefore=12,
-            leftIndent=6,
-            rightIndent=6,
-            fontName="Helvetica-Bold",
-        )
-
         normal_style = styles["BodyText"]
 
         small_style = ParagraphStyle(
@@ -638,12 +625,36 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
             fontName="Helvetica-Bold",
         )
 
+        def section_heading(text):
+            tbl = Table(
+                [[Paragraph(f"<b>{text}</b>", ParagraphStyle(
+                    "SectionHeadingText",
+                    parent=styles["BodyText"],
+                    fontSize=12,
+                    textColor=colors.white,
+                    fontName="Helvetica-Bold",
+                    alignment=0,
+                ))]],
+                colWidths=[500]
+            )
+            tbl.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#2d7fa3")),
+                ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#2d7fa3")),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 7),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+            ]))
+            return tbl
+
         story = []
 
         story.append(Paragraph("VALIDATION SUMMARY REPORT", title_style))
         story.append(Spacer(1, 8))
 
-        story.append(Paragraph("Document Information", heading_style))
+        story.append(section_heading("Document Information"))
+        story.append(Spacer(1, 8))
+
         metadata_table_data = [
             [Paragraph("<b>NAR ID</b>", normal_style), Paragraph(str(nar_id), normal_style)],
             [Paragraph("<b>Application</b>", normal_style), Paragraph(str(application_name), normal_style)],
@@ -666,16 +677,17 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
         story.append(metadata_table)
         story.append(Spacer(1, 12))
 
-        story.append(Paragraph("Result", heading_style))
-        result_text = f"{result_status} - Must-have met: {must_have_met}/{must_have_total}"
+        story.append(section_heading("Result"))
+        story.append(Spacer(1, 8))
 
+        result_text = f"{result_status} - Must-have met: {must_have_met}/{must_have_total}"
         result_table = Table(
             [[Paragraph(f"<b>{result_text}</b>", result_style)]],
             colWidths=[500]
         )
         result_table.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, -1), result_bg_color),
-            ("BOX", (0, 0), (-1, -1), 1, colors.grey),
+            ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#d0d7de")),
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("TOPPADDING", (0, 0), (-1, -1), 10),
@@ -684,16 +696,19 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
         story.append(result_table)
         story.append(Spacer(1, 12))
 
-        story.append(Paragraph("Overview", heading_style))
+        story.append(section_heading("Overview"))
+        story.append(Spacer(1, 8))
         story.append(Paragraph(architecture_summary, normal_style))
         story.append(Spacer(1, 12))
 
-        story.append(Paragraph("Must-Have Requirements", heading_style))
+        story.append(section_heading("Must-Have Requirements"))
+        story.append(Spacer(1, 8))
+
         metrics_data = [
             [
                 Paragraph("<b>Total</b>", small_style),
                 Paragraph("<b>Met</b>", small_style),
-                Paragraph("<b>Gap</b>", small_style),
+                Paragraph("<b>Must-Have Not Met</b>", small_style),
                 Paragraph("<b>Coverage</b>", small_style),
             ],
             [
@@ -704,7 +719,7 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
             ],
         ]
 
-        metrics_table = Table(metrics_data, colWidths=[80, 80, 80, 150])
+        metrics_table = Table(metrics_data, colWidths=[80, 80, 140, 90])
         metrics_table.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d7fa3")),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
@@ -720,12 +735,14 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
         story.append(metrics_table)
         story.append(Spacer(1, 12))
 
-        story.append(Paragraph("Good-to-Have Requirements", heading_style))
+        story.append(section_heading("Good-to-Have Requirements"))
+        story.append(Spacer(1, 8))
+
         good_metrics_data = [
             [
                 Paragraph("<b>Total</b>", small_style),
                 Paragraph("<b>Met</b>", small_style),
-                Paragraph("<b>Gap</b>", small_style),
+                Paragraph("<b>Good-to-Have Not Met</b>", small_style),
                 Paragraph("<b>Coverage</b>", small_style),
             ],
             [
@@ -736,7 +753,7 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
             ],
         ]
 
-        good_metrics_table = Table(good_metrics_data, colWidths=[80, 80, 80, 150])
+        good_metrics_table = Table(good_metrics_data, colWidths=[80, 80, 160, 70])
         good_metrics_table.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#4a9fc6")),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
@@ -752,7 +769,8 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
         story.append(good_metrics_table)
         story.append(Spacer(1, 12))
 
-        story.append(Paragraph("Justification", heading_style))
+        story.append(section_heading("Justification"))
+        story.append(Spacer(1, 8))
 
         table_data = [
             [
