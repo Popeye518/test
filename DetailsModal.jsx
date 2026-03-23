@@ -170,7 +170,12 @@ const DetailsModal = ({
 
             {(top3Apps.length > 0 || attentionApps.length > 0 || valueDistribution || belowAverage) && (
               <div className="insights-section">
-                <h3 className="insights-heading">Insights</h3>
+                <h3 className="insights-heading">
+                  <span className="title-with-icon">
+                    <span className="title-icon">🔍</span>
+                    <span>Insights</span>
+                  </span>
+                </h3>
 
                 <div className="first-row-grid">
                   {top3Apps.length > 0 && (
@@ -179,7 +184,7 @@ const DetailsModal = ({
                         <div>
                           <div className="insight-card-title">
                             <span className="title-with-icon">
-                              <span className="title-icon">🌟</span>
+                              <span className="title-icon">🏆</span>
                               <span>Best Observed Applications</span>
                             </span>
                           </div>
