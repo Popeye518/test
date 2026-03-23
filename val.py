@@ -553,9 +553,10 @@ def run_validation(template_json_path: str,
 def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary_report.pdf") -> bool:
     try:
         from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib import colors
         from reportlab.lib.pagesizes import A4
+        import pandas as pd
 
         summary = result.get("summary", {})
         per_intent = result.get("per_intent", [])
@@ -569,6 +570,10 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
         must_have_met = summary.get("must_have_met", 0)
         must_have_diff = must_have_total - must_have_met
         must_have_coverage = summary.get("must_have_coverage_pct", 0.0)
+        good_to_have_total = summary.get("good_to_have_total", 0)
+        good_to_have_met = summary.get("good_to_have_met", 0)
+        good_to_have_diff = good_to_have_total - good_to_have_met
+        good_to_have_coverage = summary.get("good_to_have_coverage_pct", 0.0)
 
         architecture_summary = architecture.get("summary", "")
         if not architecture_summary:
@@ -576,6 +581,10 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
                 f"This report is for NAR ID {nar_id}, application {application_name}, "
                 f"release {release_number}, and rtype {rtype}."
             )
+
+        result_status = "PASS" if must_have_total == must_have_met else "FAIL"
+        result_bg_color = colors.HexColor("#d4edda") if result_status == "PASS" else colors.HexColor("#f8d7da")
+        result_text_color = colors.HexColor("#155724") if result_status == "PASS" else colors.HexColor("#721c24")
 
         doc = SimpleDocTemplate(
             pdf_output_path,
@@ -587,30 +596,160 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
         )
 
         styles = getSampleStyleSheet()
-        story = []
 
-        title_style = styles["Heading1"]
-        heading_style = styles["Heading2"]
+        title_style = ParagraphStyle(
+            "CustomTitle",
+            parent=styles["Heading1"],
+            fontSize=22,
+            textColor=colors.HexColor("#1a5e80"),
+            spaceAfter=18,
+            alignment=1,
+            fontName="Helvetica-Bold",
+        )
+
+        heading_style = ParagraphStyle(
+            "CustomHeading",
+            parent=styles["Heading2"],
+            fontSize=13,
+            textColor=colors.white,
+            backColor=colors.HexColor("#2d7fa3"),
+            spaceAfter=10,
+            spaceBefore=12,
+            leftIndent=6,
+            rightIndent=6,
+            fontName="Helvetica-Bold",
+        )
+
         normal_style = styles["BodyText"]
 
-        story.append(Paragraph("SUMMARY REPORT", title_style))
+        small_style = ParagraphStyle(
+            "SmallStyle",
+            parent=styles["BodyText"],
+            fontSize=10,
+            textColor=colors.HexColor("#333333"),
+        )
+
+        result_style = ParagraphStyle(
+            "ResultStyle",
+            parent=styles["Heading2"],
+            fontSize=16,
+            alignment=1,
+            textColor=result_text_color,
+            fontName="Helvetica-Bold",
+        )
+
+        story = []
+
+        story.append(Paragraph("VALIDATION SUMMARY REPORT", title_style))
+        story.append(Spacer(1, 8))
+
+        story.append(Paragraph("Document Information", heading_style))
+        metadata_table_data = [
+            [Paragraph("<b>NAR ID</b>", normal_style), Paragraph(str(nar_id), normal_style)],
+            [Paragraph("<b>Application</b>", normal_style), Paragraph(str(application_name), normal_style)],
+            [Paragraph("<b>Release</b>", normal_style), Paragraph(str(release_number), normal_style)],
+            [Paragraph("<b>Type</b>", normal_style), Paragraph(str(rtype), normal_style)],
+        ]
+
+        metadata_table = Table(metadata_table_data, colWidths=[120, 380])
+        metadata_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#e8f1f5")),
+            ("BACKGROUND", (1, 0), (1, -1), colors.HexColor("#f9f9f9")),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ]))
+        story.append(metadata_table)
         story.append(Spacer(1, 12))
 
-        story.append(Paragraph(f"<b>NAR ID:</b> {nar_id}", normal_style))
-        story.append(Paragraph(f"<b>Application Name:</b> {application_name}", normal_style))
-        story.append(Paragraph(f"<b>Release Number:</b> {release_number}", normal_style))
-        story.append(Paragraph(f"<b>rtype:</b> {rtype}", normal_style))
+        story.append(Paragraph("Result", heading_style))
+        result_text = f"{result_status} - Must-have met: {must_have_met}/{must_have_total}"
+
+        result_table = Table(
+            [[Paragraph(f"<b>{result_text}</b>", result_style)]],
+            colWidths=[500]
+        )
+        result_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), result_bg_color),
+            ("BOX", (0, 0), (-1, -1), 1, colors.grey),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 0), (-1, -1), 10),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+        ]))
+        story.append(result_table)
         story.append(Spacer(1, 12))
 
-        story.append(Paragraph("Summary", heading_style))
+        story.append(Paragraph("Overview", heading_style))
         story.append(Paragraph(architecture_summary, normal_style))
         story.append(Spacer(1, 12))
 
-        story.append(Paragraph("Must-Have Metrics", heading_style))
-        story.append(Paragraph(f"<b>Must Have Total:</b> {must_have_total}", normal_style))
-        story.append(Paragraph(f"<b>Must Have Met:</b> {must_have_met}", normal_style))
-        story.append(Paragraph(f"<b>Difference:</b> {must_have_diff}", normal_style))
-        story.append(Paragraph(f"<b>Coverage:</b> {must_have_coverage:.1f}%", normal_style))
+        story.append(Paragraph("Must-Have Requirements", heading_style))
+        metrics_data = [
+            [
+                Paragraph("<b>Total</b>", small_style),
+                Paragraph("<b>Met</b>", small_style),
+                Paragraph("<b>Gap</b>", small_style),
+                Paragraph("<b>Coverage</b>", small_style),
+            ],
+            [
+                Paragraph(str(must_have_total), small_style),
+                Paragraph(str(must_have_met), small_style),
+                Paragraph(str(must_have_diff), small_style),
+                Paragraph(f"<b>{must_have_coverage:.1f}%</b>", small_style),
+            ],
+        ]
+
+        metrics_table = Table(metrics_data, colWidths=[80, 80, 80, 150])
+        metrics_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d7fa3")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("BACKGROUND", (0, 1), (-1, 1), colors.HexColor("#f0f8ff")),
+            ("GRID", (0, 0), (-1, -1), 0.75, colors.grey),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ]))
+        story.append(metrics_table)
+        story.append(Spacer(1, 12))
+
+        story.append(Paragraph("Good-to-Have Requirements", heading_style))
+        good_metrics_data = [
+            [
+                Paragraph("<b>Total</b>", small_style),
+                Paragraph("<b>Met</b>", small_style),
+                Paragraph("<b>Gap</b>", small_style),
+                Paragraph("<b>Coverage</b>", small_style),
+            ],
+            [
+                Paragraph(str(good_to_have_total), small_style),
+                Paragraph(str(good_to_have_met), small_style),
+                Paragraph(str(good_to_have_diff), small_style),
+                Paragraph(f"<b>{good_to_have_coverage:.1f}%</b>", small_style),
+            ],
+        ]
+
+        good_metrics_table = Table(good_metrics_data, colWidths=[80, 80, 80, 150])
+        good_metrics_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#4a9fc6")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("BACKGROUND", (0, 1), (-1, 1), colors.HexColor("#f0f8ff")),
+            ("GRID", (0, 0), (-1, -1), 0.75, colors.grey),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ]))
+        story.append(good_metrics_table)
         story.append(Spacer(1, 12))
 
         story.append(Paragraph("Justification", heading_style))
@@ -628,7 +767,6 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
                 name = item.get("tag", "") or item.get("intent", "") or "N/A"
                 status = item.get("status", "")
                 justification = item.get("justification", "") or "No justification available."
-
                 justification_text = f"[{status}] {justification}" if status else justification
 
                 table_data.append([
@@ -655,17 +793,26 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
             ("TOPPADDING", (0, 0), (-1, -1), 6),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
         ]))
-
         story.append(justification_table)
+        story.append(Spacer(1, 16))
+
+        footer_text = f"Report Generated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        footer_style = ParagraphStyle(
+            "FooterStyle",
+            parent=styles["Normal"],
+            fontSize=9,
+            textColor=colors.grey,
+            alignment=2,
+        )
+        story.append(Paragraph(footer_text, footer_style))
 
         doc.build(story)
-        logging.info(f"PDF Summary Report generated: {pdf_output_path}")
+        logging.info(f"Enhanced PDF Summary Report generated: {pdf_output_path}")
         return True
 
     except Exception as e:
         logging.error(f"Failed to generate PDF summary report: {e}")
         return False
-
 
 ### CLI
 def main():
