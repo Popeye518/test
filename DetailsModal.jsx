@@ -197,6 +197,38 @@ const DetailsModal = ({
                     </div>
                   )}
 
+                  <div className="insight-card attention-card">
+                    <div className="insight-card-title">Needs Attention</div>
+                    <div className="insight-card-subtitle">
+                      Applications with value above {alertThreshold}
+                    </div>
+
+                    {attentionApps.length > 0 ? (
+                      <div className="attention-list">
+                        {attentionApps.map((app, i) => (
+                          <div className="attention-row" key={`${app.name}-${app.narId || i}`}>
+                            <span className="attention-icon">⚠️</span>
+                            <div className="attention-content">
+                              <span className="attention-name">{app.name}</span>
+                              <span className="attention-meta">
+                                {app.narId ? `NAR ID: ${app.narId} • ` : ''}
+                                Value: {app.value}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="insight-highlight-box blue">
+                        <span className="insight-sub-text">
+                          No applications above threshold {alertThreshold}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="second-row-grid">
                   {valueDistribution && (
                     <div className="insight-card value-distribution-card">
                       <div className="insight-card-title">Value Distribution</div>
@@ -238,42 +270,8 @@ const DetailsModal = ({
                       </div>
                     </div>
                   )}
-                </div>
 
-                <div className="full-width-row">
-                  <div className="insight-card attention-card">
-                    <div className="insight-card-title">Needs Attention</div>
-                    <div className="insight-card-subtitle">
-                      Applications with value above {alertThreshold}
-                    </div>
-
-                    {attentionApps.length > 0 ? (
-                      <div className="attention-list">
-                        {attentionApps.map((app, i) => (
-                          <div className="attention-row" key={`${app.name}-${app.narId || i}`}>
-                            <span className="attention-icon">⚠️</span>
-                            <div className="attention-content">
-                              <span className="attention-name">{app.name}</span>
-                              <span className="attention-meta">
-                                {app.narId ? `NAR ID: ${app.narId} • ` : ''}
-                                Value: {app.value}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="insight-highlight-box blue">
-                        <span className="insight-sub-text">
-                          No applications above threshold {alertThreshold}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {belowAverage && (
-                  <div className="full-width-row">
+                  {belowAverage && (
                     <div className="insight-card below-average-card">
                       <div className="insight-card-title">Below Average</div>
                       <div className="insight-card-subtitle">Lower value performing better</div>
@@ -290,8 +288,8 @@ const DetailsModal = ({
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
           </>
