@@ -22,7 +22,6 @@ const DetailsModal = ({
 
   const filterData = (rows) => {
     if (!rows) return [];
-
     return rows.filter((item) => {
       const value = parseFloat(item.Value);
       return !isNaN(value) && value > alertThreshold;
@@ -52,6 +51,22 @@ const DetailsModal = ({
       }));
   }, [data]);
 
+  const mostFrequentApp = useMemo(() => {
+    if (!data || data.length === 0) return null;
+
+    const countMap = {};
+    data.forEach((row) => {
+      if (row.Application) {
+        countMap[row.Application] = (countMap[row.Application] || 0) + 1;
+      }
+    });
+
+    const sorted = Object.entries(countMap).sort((a, b) => b[1] - a[1]);
+    return sorted.length > 0
+      ? { name: sorted[0][0], count: sorted[0][1] }
+      : null;
+  }, [data]);
+
   const attentionApps = useMemo(() => {
     if (!data || data.length === 0) return [];
 
@@ -68,23 +83,6 @@ const DetailsModal = ({
       }));
   }, [data, alertThreshold]);
 
-  const mostFrequentApp = useMemo(() => {
-    if (!data || data.length === 0) return null;
-
-    const countMap = {};
-    data.forEach((row) => {
-      if (row.Application) {
-        countMap[row.Application] = (countMap[row.Application] || 0) + 1;
-      }
-    });
-
-    const sorted = Object.entries(countMap).sort((a, b) => b[1] - a[1]);
-
-    return sorted.length > 0
-      ? { name: sorted[0][0], count: sorted[0][1] }
-      : null;
-  }, [data]);
-
   const periodSnapshot = useMemo(() => {
     if (!data || data.length === 0) return null;
 
@@ -96,17 +94,13 @@ const DetailsModal = ({
   }, [data]);
 
   const valueDistribution = useMemo(() => {
-    if (!data || data.length === 0 || threshold === null || threshold === undefined) {
-      return null;
-    }
+    if (!data || data.length === 0 || threshold === null || threshold === undefined) return null;
 
     const values = data.map((r) => parseFloat(r.Value)).filter((v) => !isNaN(v));
     const tolerance = 0.5;
 
     const good = values.filter((v) => v < threshold - tolerance).length;
-    const atThresh = values.filter(
-      (v) => v >= threshold - tolerance && v <= threshold + tolerance
-    ).length;
+    const atThresh = values.filter((v) => v >= threshold - tolerance && v <= threshold + tolerance).length;
     const bad = values.filter((v) => v > threshold + tolerance).length;
 
     return { good, atThresh, bad, total: values.length };
@@ -148,10 +142,10 @@ const DetailsModal = ({
             {periodSnapshot && (
               <div className="period-snapshot">
                 <strong>{periodSnapshot.total}</strong> records across{' '}
-                <strong>{periodSnapshot.uniqueApps}</strong> unique applications
-                &nbsp;&nbsp; Graph Value <strong>{clickedValue ?? '-'}</strong>
-                &nbsp;&nbsp; Unique NARs <strong>{periodSnapshot.uniqueNARs}</strong>
-                &nbsp;&nbsp; Threshold <strong>{alertThreshold}</strong>
+                <strong>{periodSnapshot.uniqueApps}</strong> unique applications &nbsp;&nbsp;
+                Graph Value <strong>{clickedValue ?? '-'}</strong> &nbsp;&nbsp;
+                Unique NARs <strong>{periodSnapshot.uniqueNARs}</strong> &nbsp;&nbsp;
+                Threshold <strong>{alertThreshold}</strong>
               </div>
             )}
 
@@ -194,15 +188,13 @@ const DetailsModal = ({
               <div className="insights-section">
                 <h3 className="insights-heading">Insights</h3>
 
-                <div className="insights-grid">
+                <div className="first-row-grid">
                   {top3Apps.length > 0 && (
                     <div className="insight-card top-performers-card">
                       <div className="top-performers-header">
                         <div>
                           <div className="insight-card-title">Best Observed Applications</div>
-                          <div className="insight-card-subtitle">
-                            Lowest values in selected data
-                          </div>
+                          <div className="insight-card-subtitle">Lowest values in selected data</div>
                         </div>
                       </div>
 
@@ -217,21 +209,6 @@ const DetailsModal = ({
                             <span className="top-tile-label">Value</span>
                           </div>
                         ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {mostFrequentApp && (
-                    <div className="insight-card">
-                      <div className="insight-card-title">Most Frequent</div>
-                      <div className="insight-highlight-box orange">
-                        <span className="insight-big-text">{mostFrequentApp.name}</span>
-                        <span className="insight-sub-text">
-                          Appears <strong>{mostFrequentApp.count}</strong> times in this period
-                        </span>
-                        <span className="insight-sub-text">
-                          Based on number of records, not releases or failures
-                        </span>
                       </div>
                     </div>
                   )}
@@ -265,6 +242,23 @@ const DetailsModal = ({
                       </div>
                     )}
                   </div>
+                </div>
+
+                <div className="second-row-grid">
+                  {mostFrequentApp && (
+                    <div className="insight-card">
+                      <div className="insight-card-title">Most Frequent</div>
+                      <div className="insight-highlight-box orange">
+                        <span className="insight-big-text">{mostFrequentApp.name}</span>
+                        <span className="insight-sub-text">
+                          Appears <strong>{mostFrequentApp.count}</strong> times in this period
+                        </span>
+                        <span className="insight-sub-text">
+                          Based on number of records, not releases or failures
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {valueDistribution && (
                     <div className="insight-card">
