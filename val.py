@@ -571,6 +571,11 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
         must_have_diff = must_have_total - must_have_met
         must_have_coverage = summary.get("must_have_coverage_pct", 0.0)
 
+        good_to_have_total = summary.get("good_to_have_total", 0)
+        good_to_have_met = summary.get("good_to_have_met", 0)
+        good_to_have_diff = good_to_have_total - good_to_have_met
+        good_to_have_coverage = summary.get("good_to_have_coverage_pct", 0.0)
+
         architecture_summary = architecture.get("summary", "")
         if not architecture_summary:
             architecture_summary = (
@@ -723,14 +728,48 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
             ("BACKGROUND", (0, 1), (-1, 1), colors.HexColor("#f9f9f9")),
             ("GRID", (0, 0), (-1, -1), 0.75, colors.grey),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
-            ("ALIGN", (0, 1), (-1, -1), "LEFT"),
+            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
             ("LEFTPADDING", (0, 0), (-1, -1), 8),
             ("RIGHTPADDING", (0, 0), (-1, -1), 8),
             ("TOPPADDING", (0, 0), (-1, -1), 8),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
         ]))
         story.append(metrics_table)
+        story.append(Spacer(1, 12))
+
+        story.append(section_heading("Good-to-Have Requirements"))
+        story.append(Spacer(1, 8))
+
+        good_metrics_data = [
+            [
+                Paragraph("<b>Total</b>", small_style),
+                Paragraph("<b>Met</b>", small_style),
+                Paragraph("<b>Good-to-Have Not Met</b>", small_style),
+                Paragraph("<b>Coverage</b>", small_style),
+            ],
+            [
+                Paragraph(str(good_to_have_total), small_style),
+                Paragraph(str(good_to_have_met), small_style),
+                Paragraph(str(good_to_have_diff), small_style),
+                Paragraph(f"<b>{good_to_have_coverage:.1f}%</b>", small_style),
+            ],
+        ]
+
+        good_metrics_table = Table(good_metrics_data, colWidths=[80, 80, 160, 80])
+        good_metrics_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#d9eaf7")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("BACKGROUND", (0, 1), (-1, 1), colors.HexColor("#f9f9f9")),
+            ("GRID", (0, 0), (-1, -1), 0.75, colors.grey),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ]))
+        story.append(good_metrics_table)
         story.append(Spacer(1, 12))
 
         story.append(section_heading("Justification"))
@@ -795,7 +834,6 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
     except Exception as e:
         logging.error(f"Failed to generate PDF summary report: {e}")
         return False
-
 ### CLI
 def main():
     ap = argparse.ArgumentParser("Quality-aware Validation using Template JSON + Template PDF + Evidence")
