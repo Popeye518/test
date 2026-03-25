@@ -470,6 +470,17 @@ def run_validation(template_json_path: str,
             ev_snips = retrieve_evidence_snippets(
                 query_full, nar_id, release_number, rtype, scope_doc_hash, top_k
             )
+            tag_l = (tag or "").strip().lower()
+
+            if tag_l in {"0.2 app name", "0.2 application name", "app name", "application name"} and application_name:
+                filtered = [s for s in ev_snips if application_name.lower() in s.lower()]
+                if filtered:
+                    ev_snips = filtered
+
+            if tag_l in {"0.1 nar id", "nar id"} and nar_id:
+                filtered = [s for s in ev_snips if nar_id.lower() in s.lower()]
+                if filtered:
+                    ev_snips = filtered
             s_join = "---\n".join(ev_snips[:top_k]) if ev_snips else "(no snippets found)"
 
             g_snips = retrieve_guidance_snippets(query_full, rtype, top_n=3)
