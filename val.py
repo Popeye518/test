@@ -175,9 +175,9 @@ def gen_text(prompt: str) -> str:
         contents = [genai_types.Content(role="user", parts=[{"text": prompt}])]
         config = genai_types.GenerateContentConfig(
             temperature=0.0,
-            max_output_tokens=2048,
+            max_output_tokens=8192,
         )
-        resp = _genai.models.generate_content(model=LLM_MODEL, contents=contents, config=config)
+        resp = _genai.models.generate_content(model=LLM_MODEL, contents=contents, config=generation_config)
         return getattr(resp, "output_text", None) or getattr(resp, "text", "") or ""
     except Exception as e:
         logging.error(f"LLM generation failed: {e}")
@@ -264,7 +264,7 @@ def retrieve_evidence_snippets(query: str, nar_id: str, release_number: str, rty
     engine = get_engine()
     with engine.connect() as conn:
         rows = conn.execute(sql, params).fetchall()
-    return [r for r in rows if r and (r or "").strip()]
+    return [r[0] for r in rows if r and (r[0] or "").strip()]
 
 
 def retrieve_guidance_snippets(query: str, rtype: str, top_n: int = 3) -> List[str]:
@@ -280,7 +280,7 @@ def retrieve_guidance_snippets(query: str, rtype: str, top_n: int = 3) -> List[s
         engine = get_engine()
         with engine.connect() as c:
             rows = c.execute(sql, {"rtype": rtype, "vec": vec, "topn": top_n}).fetchall()
-        return [r for r in rows if r and r]
+        return [r[0] for r in rows if r and r[0]]
     except Exception as e:
         logging.warning(f"guidance retrieval failed: {e}")
         return []
@@ -304,7 +304,7 @@ def retrieve_mm_diagrams(query_text: str, nar_id: str, release_number: str, rtyp
     engine = get_engine()
     with engine.connect() as c:
         rows = c.execute(sql, params).fetchall()
-    return [{"caption": r, "doc_uri": r} for r in rows][1]
+    return [{"caption": r[0], "doc_uri": r[1]} for r in rows]
 
 
 PRESENCE_QUALITY_PROMPT = """You are a validation agent.
@@ -466,7 +466,7 @@ def run_validation(template_json_path: str,
             )
 
             if enable_mm and is_diagram:
-                mm_hits = retrieve_mm_diagrams(query_full, nar_id, release_number, rtype, scope_doc_hash, top_n=3)
+                mm_hits = retrieve_mm_diagrams(query_full, nar_id, release_number, rtype, scope_doc_hash, top_n=3, dim=MM_DIM)
                 diag_block = "\n".join([f"- {h['caption']} :: {h['doc_uri']}" for h in mm_hits]) or "(none)"
                 p_json = parse_json(gen_text(DIAGRAM_PROMPT.format(
                     tag=tag, notes=notes,
@@ -558,6 +558,11 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
         from reportlab.lib.pagesizes import A4
         import pandas as pd
 
+        styles = getSampleStyleSheet()
+        link_style = styles["Normal"].clone('link_style')
+        link_style.textColor = colors.blue
+        link_style.underline = True
+        
         summary = result.get("summary", {})
         per_intent = result.get("per_intent", [])
         architecture = summary.get("architecture", {}) or {}
@@ -836,8 +841,8 @@ def generate_summary_pdf(result: Dict[str, Any], pdf_output_path: str = "summary
         return False
 ### CLI
 def main():
-    ap = argparse.ArgumentParser("Quality-aware Validation using Template JSON + Template PDF + Evidence")
-    ap.add_argument("--template-json", required=True)
+    ap = argparse.ArgumentParser("Quality-aware Validation using Template JSON + Template PDF + Evidence(text+diagrams)")
+    ap.add_argument("--template-json", required=True,help="Path to Json")
     ap.add_argument("--template-pdf", required=True)
     ap.add_argument("--nar-id", required=True)
     ap.add_argument("--application-name", required=True)
