@@ -335,172 +335,200 @@ function App() {
     }
   };
 
-  const handlePointClick = async (graphKey, period, entityName, entityType) => {
-    if (graphKey === 'graph1') return;
+ const handlePointClick = async (graphkey, period, entityName, entityType) => {
+  const metricLabel = METRIC_LABELS[graphkey];
+  setDetailsModalTitle(`Details for ${entityName} - ${metricLabel} (${period})`);
+  setDetailsModalLoading(true);
+  setShowDetailsModal(true);
+  setDetailsModalData(null);
+  setCurrentGraphKey(graphkey);
 
-    const metricLabel = METRIC_LABELS[graphKey];
-    setDetailsModalTitle(`Details for ${entityName} - ${metricLabel} (${period})`);
-    setBestPerformingApps([]);
-    setDetailsModalLoading(true);
-    setShowDetailsModal(true);
-    setDetailsModalData(null);
-    setCurrentGraphKey(graphKey);
+  let detailsApiUrls;
+  let paramName;
 
-    let detailsApiUrls;
-    let infoApiUrls;
-    let paramName;
-
-    switch (entityType) {
-      case 'cio':
-        detailsApiUrls = cioDetailsApiUrls;
-        infoApiUrls = cioInfoApiUrls;
-        paramName = 'cio';
-        break;
-
-      case 'ciol':
-      case 'cio1':
-        detailsApiUrls = ciolDetailsApiUrls;
-        infoApiUrls = cio1InfoApiUrls;
-        paramName = 'cio_1';
-        break;
-
-      case 'owner':
-        detailsApiUrls = ownerDetailsApiUrls;
-        infoApiUrls = ownerInfoApiUrls;
-        paramName = 'portfolio_owner';
-        break;
-
-      default:
-        setDetailsModalLoading(false);
-        return;
-    }
-
-    const url = detailsApiUrls[graphKey];
-    let columns = [];
-
-    if (graphKey === 'graph2' || graphKey === 'graph3') {
-      columns = [
-        { key: 'Change_ID', label: 'Change ID' },
-        { key: 'NAR_ID', label: 'NAR ID' },
-        { key: 'Application', label: 'Application' },
-        { key: 'Period', label: 'Period' },
-        { key: 'Value', label: 'Value' },
-      ];
-    } else if (graphKey === 'graph4') {
-      columns = [
-        { key: 'Incident_ID', label: 'Incident ID' },
-        { key: 'NAR_ID', label: 'NAR ID' },
-        { key: 'Application', label: 'Application' },
-        { key: 'Outage_Hours', label: 'Outage Hours' },
-        { key: 'Period', label: 'Period' },
-        { key: 'Value', label: 'Value' },
-      ];
-    }
-
-    setDetailsModalColumns(columns);
-
-    try {
-      const fetchUrl = `${url}?${paramName}=${encodeURIComponent(entityName)}&size=999999`;
-      const response = await fetch(fetchUrl);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      const allResults = Array.isArray(data)
-        ? data
-        : data.results || data.items || data.data || [];
-
-      const allDetailsPromises = allResults.map(async (item) => {
-  if (graphkey === 'graph4') {
-    return item;
-  }
-
-  const narId = item.NAR_ID;
-  const application = item.Application;
-
-  if (!narId || !application) return item;
-
-  const ownerUrl =
-    `${infoApiUrls[graphkey]}?${paramName}=${encodeURIComponent(entityName)}` +
-    `&nar_id=${encodeURIComponent(narId)}` +
-    `&applicationname=${encodeURIComponent(application)}`;
-
-  const detailsResponse = await fetch(ownerUrl);
-
-  if (!detailsResponse.ok) {
-    console.error(`Details fetch failed with status: ${detailsResponse.status} for URL: ${ownerUrl}`);
-    return item;
-  }
-
-  const detailsData = await detailsResponse.json();
-  const changeInfo = Array.isArray(detailsData)
-    ? detailsData[0]
-    : (detailsData.results || detailsData.items || detailsData.data || [])[0];
-
-  if (
-    changeInfo &&
-    item.NAR_ID === changeInfo.NAR_ID &&
-    item.Application === changeInfo.Application &&
-    item.Period === changeInfo.Period
-  ) {
-    return {
-      ...item,
-      Change_ID: changeInfo.Change_ID ?? item.Change_ID,
-      Incident_ID: changeInfo.Incident_ID ?? item.Incident_ID,
-      NAR_ID: changeInfo.NAR_ID ?? item.NAR_ID,
-      Outage_Hours: changeInfo.Outage_Hours ?? item.Outage_Hours,
-    };
-  }
-
-  return item;
-});
-
-      
-      const detailedResults = await Promise.all(
-        allResults.map(async (item) => {
-          if (graphKey === 'graph2' || graphKey === 'graph3' || graphKey === 'graph4') {
-            return item;
-          }
-
-          return item;
-        })
-      );
-
-      const filteredResults = detailedResults.filter(
-        (item) => item.Period && item.Period.trim() === period
-      );
-
-      if (filteredResults.length === 0) {
-        setDetailsModalData([]);
-        setNoDataMessage('All values are less than 10 for this selection.');
-        setDetailsModalLoading(false);
-        return;
-      }
-
-      setNoDataMessage('');
-      setDetailsModalData(filteredResults);
-
-      if (graphKey !== 'graph1') {
-        const sortedResults = [...filteredResults].sort(
-          (a, b) => Number(a.Value) - Number(b.Value)
-        );
-        const top3 = sortedResults.slice(0, 3);
-        setBestPerformingApps(top3);
-      } else {
-        setBestPerformingApps([]);
-      }
-    } catch (e) {
-      console.error('[handlePointClick] Error fetching details data:', e);
-      setDetailsModalData([
-        { error: 'Failed to fetch data. Please check the console for details.' },
-      ]);
-    } finally {
+  switch (entityType) {
+    case 'cio':
+      detailsApiUrls = cioDetailsApiUrls;
+      paramName = 'cio';
+      break;
+    case 'cio1':
+      detailsApiUrls = cio1DetailsApiUrls;
+      paramName = 'cio_1';
+      break;
+    case 'owner':
+      detailsApiUrls = ownerDetailsApiUrls;
+      paramName = 'portfolio_owner';
+      break;
+    default:
       setDetailsModalLoading(false);
+      return;
+  }
+
+  const url = detailsApiUrls[graphkey];
+
+  let columns = [];
+
+  if (graphkey === 'graph1' || graphkey === 'graph2' || graphkey === 'graph3') {
+    columns = [
+      { key: 'Change_ID', label: 'Change ID' },
+      { key: 'NAR_ID', label: 'NAR ID' },
+      { key: 'Application', label: 'Application' },
+      { key: 'Period', label: 'Period' },
+      { key: 'Value', label: 'Value' },
+    ];
+  } else if (graphkey === 'graph4') {
+    columns = [
+      { key: 'Incident_ID', label: 'Incident ID' },
+      { key: 'NAR_ID', label: 'NAR ID' },
+      { key: 'Application', label: 'Application' },
+      { key: 'Outage_Hours', label: 'Outage Hours' },
+      { key: 'Period', label: 'Period' },
+      { key: 'Value', label: 'Value' },
+    ];
+  }
+
+  setDetailsModalColumns(columns);
+
+  let infoApiUrls;
+
+  switch (entityType) {
+    case 'cio':
+      infoApiUrls = cioInfoApiUrls;
+      paramName = 'cio';
+      break;
+    case 'cio1':
+      infoApiUrls = cio1InfoApiUrls;
+      paramName = 'cio_1';
+      break;
+    case 'owner':
+      infoApiUrls = ownerInfoApiUrls;
+      paramName = 'portfolio_owner';
+      break;
+    default:
+      setDetailsModalLoading(false);
+      return;
+  }
+
+  try {
+    const fetchUrl = `${url}?${paramName}=${encodeURIComponent(entityName)}&size=999999`;
+    console.log(`[handlePointClick] Fetching details from: ${fetchUrl}`);
+
+    const response = await fetch(fetchUrl);
+
+    if (!response.ok) {
+      console.error(
+        `[handlePointClick] Details fetch failed with status: ${response.status} for URL: ${fetchUrl}`
+      );
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  };
+
+    const data = await response.json();
+    console.log('[handlePointClick] Received details data:', data);
+
+    const allResults = Array.isArray(data)
+      ? data
+      : (data.results || data.items || data.data || []);
+
+    console.log('[handlePointClick] KK allResults data:', allResults);
+
+    const allDetailsPromises = allResults.map(async (item) => {
+      if (graphkey === 'graph4') return item;
+
+      const narId = item.NAR_ID;
+      const application = item.Application;
+
+      if (!narId || !application) return item;
+
+      const ownerUrl =
+        `${infoApiUrls[graphkey]}?${paramName}=${encodeURIComponent(entityName)}` +
+        `&nar_id=${encodeURIComponent(narId)}` +
+        `&applicationname=${encodeURIComponent(application)}`;
+
+      console.log(`Fetching infoApiUrl info from: ${ownerUrl}`);
+
+      const detailsResponse = await fetch(ownerUrl);
+
+      if (!detailsResponse.ok) {
+        console.error(
+          `Details fetch failed with status: ${detailsResponse.status} for URL: ${ownerUrl}`
+        );
+        return item;
+      }
+
+      const detailsData = await detailsResponse.json();
+
+      const changeInfo = Array.isArray(detailsData)
+        ? detailsData[0]
+        : (detailsData.results || detailsData.items || detailsData.data || [])[0];
+
+      console.log('Changeinfo KK:', changeInfo);
+      console.log('detailsData from Change details API:', detailsData);
+
+      if (changeInfo) {
+        console.log('Change Info', changeInfo);
+        console.log('Change ID', changeInfo.Change_ID ?? changeInfo.ChangeID);
+        console.log('Incident ID', changeInfo.Incident_ID ?? changeInfo.IncidentID);
+        console.log('Nar ID', changeInfo.NAR_ID ?? changeInfo.NARID);
+        console.log('Application', changeInfo.Application);
+      } else {
+        console.warn('Change info is not present');
+      }
+
+      if (
+        changeInfo &&
+        item.NAR_ID === (changeInfo.NAR_ID ?? changeInfo.NARID) &&
+        item.Application === changeInfo.Application &&
+        item.Period === changeInfo.Period
+      ) {
+        console.log('Change info found', changeInfo);
+
+        return {
+          ...item,
+          Change_ID:
+            changeInfo.Change_ID ??
+            changeInfo.ChangeID ??
+            changeInfo.change_id ??
+            item.Change_ID,
+          Incident_ID:
+            changeInfo.Incident_ID ??
+            changeInfo.IncidentID ??
+            item.Incident_ID,
+          NAR_ID:
+            changeInfo.NAR_ID ??
+            changeInfo.NARID ??
+            item.NAR_ID,
+          Outage_Hours:
+            changeInfo.Outage_Hours ??
+            changeInfo.OutageHours ??
+            item.Outage_Hours,
+        };
+      }
+
+      return item;
+    });
+
+    const detailedResults = await Promise.all(allDetailsPromises);
+    console.log('DetailedResults KK Modal Data', detailedResults);
+
+    const filteredResults = detailedResults.filter(
+      (item) => item.Period && item.Period.trim() === period
+    );
+
+    if (allResults.length > 0 && filteredResults.length === 0) {
+      console.warn(
+        `[handlePointClick] API returned ${allResults.length} items, but none matched the period "${period}".`
+      );
+    }
+
+    setDetailsModalData(filteredResults);
+    console.log('Details Modal Data', filteredResults);
+  } catch (e) {
+    console.error('[handlePointClick] Error fetching details data:', e);
+    setDetailsModalData([{ error: 'Failed to fetch data. Please check the console for details.' }]);
+  } finally {
+    setDetailsModalLoading(false);
+  }
+};
 
   const fetchInitialData = async () => {
     try {
