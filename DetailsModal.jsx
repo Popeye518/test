@@ -8,27 +8,36 @@ const DetailsModal = ({
   loading,
   onClose,
   threshold,
-  clickedValue
+  clickedValue,
+  currentGraphKey
 }) => {
   const alertThreshold = useMemo(() => {
-    const lowerTitle = (title || '').toLowerCase();
-
-    if (lowerTitle.includes('graph 4')) return 12;
-    if (lowerTitle.includes('graph 2')) return 10;
-    if (lowerTitle.includes('graph 3') || lowerTitle.includes('cfr')) return 10;
+    if (currentGraphKey === 'graph1') return 2;
+    if (currentGraphKey === 'graph4') return 12;
+    if (currentGraphKey === 'graph2' || currentGraphKey === 'graph3') return 10;
 
     return threshold ?? 10;
-  }, [title, threshold]);
+  }, [currentGraphKey, threshold]);
 
-  const filterData = (rows) => {
-    if (!rows) return [];
-    return rows.filter((item) => {
-      const value = parseFloat(item.Value);
-      return !isNaN(value) && value > alertThreshold;
-    });
+  const shouldHighlightRow = (row) => {
+    const value = parseFloat(row?.Value);
+
+    if (isNaN(value)) return false;
+
+    if (currentGraphKey === 'graph1') {
+      return value < 2;
+    }
+
+    if (currentGraphKey === 'graph4') {
+      return value > 12;
+    }
+
+    if (currentGraphKey === 'graph2' || currentGraphKey === 'graph3') {
+      return value > 10;
+    }
+
+    return threshold != null ? value > threshold : false;
   };
-
-  const filteredRows = useMemo(() => filterData(data), [data, alertThreshold]);
 
   const top3Apps = useMemo(() => {
     if (!data || data.length === 0) return [];
@@ -46,7 +55,7 @@ const DetailsModal = ({
       .slice(0, 3)
       .map((row) => ({
         name: row.Application,
-        narId: row.NAR_ID,
+        narId: row.NAR_ID || row.NARID,
         value: parseFloat(row.Value).toFixed(1)
       }));
   }, [data]);
@@ -55,24 +64,23 @@ const DetailsModal = ({
     if (!data || data.length === 0) return [];
 
     return data
-      .filter((row) => {
-        const value = parseFloat(row.Value);
-        return row.Application && !isNaN(value) && value > alertThreshold;
-      })
+      .filter((row) => row.Application && shouldHighlightRow(row))
       .sort((a, b) => parseFloat(b.Value) - parseFloat(a.Value))
       .map((row) => ({
         name: row.Application,
-        narId: row.NAR_ID,
+        narId: row.NAR_ID || row.NARID,
         value: parseFloat(row.Value).toFixed(1)
       }));
-  }, [data, alertThreshold]);
+  }, [data, currentGraphKey, threshold]);
 
   const periodSnapshot = useMemo(() => {
     if (!data || data.length === 0) return null;
 
     const total = data.length;
     const uniqueApps = new Set(data.map((r) => r.Application).filter(Boolean)).size;
-    const uniqueNARs = new Set(data.map((r) => r.NAR_ID).filter(Boolean)).size;
+    const uniqueNARs = new Set(
+      data.map((r) => r.NAR_ID || r.NARID).filter(Boolean)
+    ).size;
 
     return { total, uniqueApps, uniqueNARs };
   }, [data]);
@@ -81,14 +89,24 @@ const DetailsModal = ({
     if (!data || data.length === 0 || threshold === null || threshold === undefined) return null;
 
     const values = data.map((r) => parseFloat(r.Value)).filter((v) => !isNaN(v));
-    const tolerance = 0.5;
+    if (!values.length) return null;
 
-    const good = values.filter((v) => v < threshold - tolerance).length;
-    const atThresh = values.filter((v) => v >= threshold - tolerance && v <= threshold + tolerance).length;
-    const bad = values.filter((v) => v > threshold + tolerance).length;
+    if (currentGraphKey === 'graph1') {
+      const good = values.filter((v) => v >= 2).length;
+      const atThresh = values.filter((v) => v === 2).length;
+      const bad = values.filter((v) => v < 2).length;
+      return { good, atThresh, bad, total: values.length };
+    }
+
+    const tolerance = 0.5;
+    const good = values.filter((v) => v < alertThreshold - tolerance).length;
+    const atThresh = values.filter(
+      (v) => v >= alertThreshold - tolerance && v <= alertThreshold + tolerance
+    ).length;
+    const bad = values.filter((v) => v > alertThreshold + tolerance).length;
 
     return { good, atThresh, bad, total: values.length };
-  }, [data, threshold]);
+  }, [data, threshold, currentGraphKey, alertThreshold]);
 
   const belowAverage = useMemo(() => {
     if (!data || data.length === 0) return null;
@@ -97,10 +115,13 @@ const DetailsModal = ({
     if (!values.length) return null;
 
     const avg = values.reduce((a, b) => a + b, 0) / values.length;
-    const goodCount = values.filter((v) => v < avg).length;
+    const goodCount =
+      currentGraphKey === 'graph1'
+        ? values.filter((v) => v > avg).length
+        : values.filter((v) => v < avg).length;
 
     return { goodCount, total: values.length, avg: avg.toFixed(1) };
-  }, [data]);
+  }, [data, currentGraphKey]);
 
   if (!data && !loading) return null;
 
@@ -135,31 +156,30 @@ const DetailsModal = ({
 
             <div className="details-table-container">
               {data && data.length > 0 ? (
-                filteredRows.length > 0 ? (
-                  <table>
-                    <thead>
-                      <tr>
+                <table>
+                  <thead>
+                    <tr>
+                      {columns.map((col) => (
+                        <th key={col.key}>{col.label}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.map((row, index) => (
+                      <tr
+                        key={index}
+                        className="table-row-hover"
+                        style={{
+                          backgroundColor: shouldHighlightRow(row) ? '#fee2e2' : 'transparent',
+                        }}
+                      >
                         {columns.map((col) => (
-                          <th key={col.key}>{col.label}</th>
+                          <td key={col.key}>{row[col.key] ?? 'N/A'}</td>
                         ))}
                       </tr>
-                    </thead>
-                    <tbody>
-                      {filteredRows.map((row, index) => (
-                        <tr key={index} className="table-row-hover">
-                          {columns.map((col) => (
-                            <td key={col.key}>{row[col.key]}</td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div className="no-data-message">
-                    <span className="no-data-icon">📭</span>
-                    <p>No records found above threshold {alertThreshold} for this selected period.</p>
-                  </div>
-                )
+                    ))}
+                  </tbody>
+                </table>
               ) : (
                 <div className="no-data-message">
                   <span className="no-data-icon">📭</span>
@@ -215,7 +235,9 @@ const DetailsModal = ({
                       </span>
                     </div>
                     <div className="insight-card-subtitle">
-                      Applications with value above {alertThreshold}
+                      {currentGraphKey === 'graph1'
+                        ? `Applications with value below ${alertThreshold}`
+                        : `Applications with value above ${alertThreshold}`}
                     </div>
 
                     {attentionApps.length > 0 ? (
@@ -236,7 +258,9 @@ const DetailsModal = ({
                     ) : (
                       <div className="insight-highlight-box blue">
                         <span className="insight-sub-text">
-                          No applications above threshold {alertThreshold}
+                          {currentGraphKey === 'graph1'
+                            ? `No applications below threshold ${alertThreshold}`
+                            : `No applications above threshold ${alertThreshold}`}
                         </span>
                       </div>
                     )}
@@ -252,11 +276,15 @@ const DetailsModal = ({
                           <span>Value Distribution</span>
                         </span>
                       </div>
-                      <div className="insight-card-subtitle">Threshold {threshold}</div>
+                      <div className="insight-card-subtitle">Threshold {alertThreshold}</div>
 
                       <div className="distribution-list distribution-list-large">
                         <div className="dist-block">
-                          <span className="dist-block-label">Below &lt; {threshold}</span>
+                          <span className="dist-block-label">
+                            {currentGraphKey === 'graph1'
+                              ? `Safe >= ${alertThreshold}`
+                              : `Below < ${alertThreshold}`}
+                          </span>
                           <div className="dist-bar-wrap large-bar-wrap">
                             <span
                               className="dist-bar green"
@@ -278,7 +306,11 @@ const DetailsModal = ({
                         </div>
 
                         <div className="dist-block">
-                          <span className="dist-block-label">Above &gt; {threshold}</span>
+                          <span className="dist-block-label">
+                            {currentGraphKey === 'graph1'
+                              ? `Below < ${alertThreshold}`
+                              : `Above > ${alertThreshold}`}
+                          </span>
                           <div className="dist-bar-wrap large-bar-wrap">
                             <span
                               className="dist-bar red"
@@ -299,7 +331,11 @@ const DetailsModal = ({
                           <span>Below Average</span>
                         </span>
                       </div>
-                      <div className="insight-card-subtitle">Lower value performing better</div>
+                      <div className="insight-card-subtitle">
+                        {currentGraphKey === 'graph1'
+                          ? 'Higher value performing better'
+                          : 'Lower value performing better'}
+                      </div>
 
                       <div className="below-average-box">
                         <span className="attention-icon">📊</span>
@@ -308,7 +344,9 @@ const DetailsModal = ({
                             {belowAverage.goodCount}/{belowAverage.total} records
                           </span>
                           <span className="attention-meta">
-                            Below average value of {belowAverage.avg}
+                            {currentGraphKey === 'graph1'
+                              ? `Above average value of ${belowAverage.avg}`
+                              : `Below average value of ${belowAverage.avg}`}
                           </span>
                         </div>
                       </div>
