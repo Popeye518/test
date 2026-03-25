@@ -264,7 +264,17 @@ def retrieve_evidence_snippets(query: str, nar_id: str, release_number: str, rty
     engine = get_engine()
     with engine.connect() as conn:
         rows = conn.execute(sql, params).fetchall()
-    return [r[0] for r in rows if r and (r[0] or "").strip()]
+
+     logging.info(f"[DEBUG][TEXT] query={query}")
+     logging.info(f"[DEBUG][TEXT] params={params}")
+     logging.info(f"[DEBUG][TEXT] rows_fetched={len(rows)}")
+     for i, row in enumerate(rows):
+         logging.info(
+             f"[DEBUG][TEXT][ROW {i}] nar_id={row[0]}, release_number={row[1]}, "
+             f"rtype={row[2]}, doc_hash={row[3]}, chunk={str(row[4])[:250]}"
+         )
+
+     return [r[4] for r in rows if r and (r[4] or "").strip()]
 
 
 def retrieve_guidance_snippets(query: str, rtype: str, top_n: int = 3) -> List[str]:
@@ -304,7 +314,17 @@ def retrieve_mm_diagrams(query_text: str, nar_id: str, release_number: str, rtyp
     engine = get_engine()
     with engine.connect() as c:
         rows = c.execute(sql, params).fetchall()
-    return [{"caption": r[0], "doc_uri": r[1]} for r in rows]
+    
+    logging.info(f"[DEBUG][MM] query={query_text}")
+    logging.info(f"[DEBUG][MM] params={params}")
+    logging.info(f"[DEBUG][MM] rows_fetched={len(rows)}")
+    for i, row in enumerate(rows):
+        logging.info(
+            f"[DEBUG][MM][ROW {i}] nar_id={row[0]}, release_number={row[1]}, "
+            f"rtype={row[2]}, doc_hash={row[3]}, caption={str(row[4])[:200]}, doc_uri={row[5]}"
+        )
+
+    return [{"caption": r[4], "doc_uri": r[5]} for r in rows]
 
 
 PRESENCE_QUALITY_PROMPT = """You are a validation agent.
