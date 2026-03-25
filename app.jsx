@@ -74,7 +74,7 @@ const MultiSelectDropdown = ({ options, selectedItems, setSelectedItems, title }
     setSelectedItems(Array.from(newSelection));
   };
 
-  const filteredOptions = options.filter((option) =>
+  const filteredOptions = options.filter(option) =>
     option.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -87,7 +87,7 @@ const MultiSelectDropdown = ({ options, selectedItems, setSelectedItems, title }
   };
 
   const getHeaderText = () => {
-    if (selectedItems.length === 0) return `Select ${title}`;
+    if (selectedItems.length === 0) return `Select ${title}...`;
     if (selectedItems.length === 1) return selectedItems[0];
     if (selectedItems.length === options.length) return `All ${title} Selected`;
     return `${selectedItems.length} ${title} Selected`;
@@ -95,11 +95,7 @@ const MultiSelectDropdown = ({ options, selectedItems, setSelectedItems, title }
 
   return (
     <div className="multiselect-dropdown" ref={dropdownRef}>
-      <button
-        type="button"
-        className="dropdown-header"
-        onClick={() => setIsOpen(!isOpen)}
-      >
+      <button className="dropdown-header" onClick={() => setIsOpen(!isOpen)} >
         {getHeaderText()}
         <span className={`dropdown-arrow ${isOpen ? 'open' : ''}`}>▼</span>
       </button>
@@ -125,7 +121,7 @@ const MultiSelectDropdown = ({ options, selectedItems, setSelectedItems, title }
               <label htmlFor={`select-all-${title}`}>Select All</label>
             </div>
 
-            {filteredOptions.map((option) => (
+            {filteredOptions.map(option) => (
               <div key={option} className="dropdown-item">
                 <input
                   type="checkbox"
