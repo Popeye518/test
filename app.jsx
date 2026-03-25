@@ -413,6 +413,52 @@ function App() {
         ? data
         : data.results || data.items || data.data || [];
 
+      const allDetailsPromises = allResults.map(async (item) => {
+  if (graphkey === 'graph4') {
+    return item;
+  }
+
+  const narId = item.NAR_ID;
+  const application = item.Application;
+
+  if (!narId || !application) return item;
+
+  const ownerUrl =
+    `${infoApiUrls[graphkey]}?${paramName}=${encodeURIComponent(entityName)}` +
+    `&nar_id=${encodeURIComponent(narId)}` +
+    `&applicationname=${encodeURIComponent(application)}`;
+
+  const detailsResponse = await fetch(ownerUrl);
+
+  if (!detailsResponse.ok) {
+    console.error(`Details fetch failed with status: ${detailsResponse.status} for URL: ${ownerUrl}`);
+    return item;
+  }
+
+  const detailsData = await detailsResponse.json();
+  const changeInfo = Array.isArray(detailsData)
+    ? detailsData[0]
+    : (detailsData.results || detailsData.items || detailsData.data || [])[0];
+
+  if (
+    changeInfo &&
+    item.NAR_ID === changeInfo.NAR_ID &&
+    item.Application === changeInfo.Application &&
+    item.Period === changeInfo.Period
+  ) {
+    return {
+      ...item,
+      Change_ID: changeInfo.Change_ID ?? item.Change_ID,
+      Incident_ID: changeInfo.Incident_ID ?? item.Incident_ID,
+      NAR_ID: changeInfo.NAR_ID ?? item.NAR_ID,
+      Outage_Hours: changeInfo.Outage_Hours ?? item.Outage_Hours,
+    };
+  }
+
+  return item;
+});
+
+      
       const detailedResults = await Promise.all(
         allResults.map(async (item) => {
           if (graphKey === 'graph2' || graphKey === 'graph3' || graphKey === 'graph4') {
