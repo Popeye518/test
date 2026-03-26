@@ -1,20 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Chart, ArcElement, PieController } from 'chart.js';
 import { createRoot } from 'react-dom/client';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { Chart, ArcElement, PieController } from 'chart.js';
-
-import Portfolio_OwnerModal from './Portfolio_OwnerModal';
-import ComparisonTableModal from './ComparisonTableModal';
-import DetailsModal from './DetailsModal';
 
 import './App.css';
 import './DetailsModal.css';
-import './Portfolio_OwnerModal.css';
+import './PortfolioOwnerModal.css';
 
-// These imports/constants must match your project structure.
-// Adjust the paths/names below if your actual files use different exports.
-import doraFrontPage from './assets/doraFrontPage.png';
+import PortfolioOwnerModal from './components/PortfolioOwnerModal';
+import ComparisonTableModal from './components/Doratable';
+import DetailsModal from './components/DetailsModal';
+import doraFrontPage from './components/Dora_front_page.png';
+
 import {
   portfolioOwnerApiUrl,
   cioApiUrl,
@@ -43,7 +41,6 @@ const METRIC_THRESHOLDS = {
   graph4: 12,
 };
 
-// --- MultiSelectDropdown Component Definition ---
 const MultiSelectDropdown = ({ options, selectedItems, setSelectedItems, title }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,24 +54,20 @@ const MultiSelectDropdown = ({ options, selectedItems, setSelectedItems, title }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleCheckboxChange = (item) => {
     const newSelection = new Set(selectedItems);
-
     if (newSelection.has(item)) {
       newSelection.delete(item);
     } else {
       newSelection.add(item);
     }
-
     setSelectedItems(Array.from(newSelection));
   };
 
-  const filteredOptions = options.filter(option) =>
+  const filteredOptions = options.filter((option) =>
     option.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -95,9 +88,9 @@ const MultiSelectDropdown = ({ options, selectedItems, setSelectedItems, title }
 
   return (
     <div className="multiselect-dropdown" ref={dropdownRef}>
-      <button className="dropdown-header" onClick={() => setIsOpen(!isOpen)} >
+      <button type="button" className="dropdown-header" onClick={() => setIsOpen(!isOpen)}>
         {getHeaderText()}
-        <span className={`dropdown-arrow ${isOpen ? 'open' : ''}`}>▼</span>
+        <span className={`dropdown-arrow ${isOpen ? 'open' : ''}`}></span>
       </button>
 
       {isOpen && (
@@ -121,7 +114,7 @@ const MultiSelectDropdown = ({ options, selectedItems, setSelectedItems, title }
               <label htmlFor={`select-all-${title}`}>Select All</label>
             </div>
 
-            {filteredOptions.map(option) => (
+            {filteredOptions.map((option) => (
               <div key={option} className="dropdown-item">
                 <input
                   type="checkbox"
@@ -139,7 +132,6 @@ const MultiSelectDropdown = ({ options, selectedItems, setSelectedItems, title }
   );
 };
 
-// --- DownloadOptionsModal Component Definition ---
 const DownloadOptionsModal = ({ onSelect, onCancel, isGenerating }) => {
   const [selectedDownload, setSelectedDownload] = useState('graph');
 
@@ -156,7 +148,7 @@ const DownloadOptionsModal = ({ onSelect, onCancel, isGenerating }) => {
             className={`choice-card ${selectedDownload === 'graph' ? 'active' : ''}`}
             onClick={() => setSelectedDownload('graph')}
           >
-            <div className="choice-icon">📈</div>
+            <div className="choice-icon"></div>
             <div className="choice-text">
               <h3>Graph Report</h3>
               <p>A multi-page PDF with detailed charts for each selected entity.</p>
@@ -167,7 +159,7 @@ const DownloadOptionsModal = ({ onSelect, onCancel, isGenerating }) => {
             className={`choice-card ${selectedDownload === 'table' ? 'active' : ''}`}
             onClick={() => setSelectedDownload('table')}
           >
-            <div className="choice-icon">📋</div>
+            <div className="choice-icon"></div>
             <div className="choice-text">
               <h3>Table Report</h3>
               <p>A consolidated PDF showing raw data in tables for all selected entities.</p>
@@ -176,11 +168,7 @@ const DownloadOptionsModal = ({ onSelect, onCancel, isGenerating }) => {
         </div>
 
         <div className="view-options-footer">
-          <button
-            className="view-options-button cancel"
-            onClick={onCancel}
-            disabled={isGenerating}
-          >
+          <button className="view-options-button cancel" onClick={onCancel} disabled={isGenerating}>
             Cancel
           </button>
           <button
@@ -196,7 +184,6 @@ const DownloadOptionsModal = ({ onSelect, onCancel, isGenerating }) => {
   );
 };
 
-// --- ViewOptionsModal Component Definition ---
 const ViewOptionsModal = ({ onSelect, onCancel }) => {
   const [selectedView, setSelectedView] = useState('graph');
 
@@ -204,16 +191,14 @@ const ViewOptionsModal = ({ onSelect, onCancel }) => {
     <div className="modal-overlay">
       <div className="view-options-modal-content">
         <h2 className="view-options-title">Select Report View</h2>
-        <p className="view-options-subtitle">
-          Choose how you would like to view DORA Report.
-        </p>
+        <p className="view-options-subtitle">Choose how you would like to view DORA Report.</p>
 
         <div className="view-options-choices">
           <div
             className={`choice-card ${selectedView === 'graph' ? 'active' : ''}`}
             onClick={() => setSelectedView('graph')}
           >
-            <div className="choice-icon">📊</div>
+            <div className="choice-icon"></div>
             <div className="choice-text">
               <h3>Graph View</h3>
               <p>Visualize metrics over time with interactive charts.</p>
@@ -224,7 +209,7 @@ const ViewOptionsModal = ({ onSelect, onCancel }) => {
             className={`choice-card ${selectedView === 'table' ? 'active' : ''}`}
             onClick={() => setSelectedView('table')}
           >
-            <div className="choice-icon">📄</div>
+            <div className="choice-icon"></div>
             <div className="choice-text">
               <h3>Table View</h3>
               <p>Compare raw data for multiple entities side-by-side.</p>
@@ -236,10 +221,7 @@ const ViewOptionsModal = ({ onSelect, onCancel }) => {
           <button className="view-options-button cancel" onClick={onCancel}>
             Cancel
           </button>
-          <button
-            className="view-options-button view"
-            onClick={() => onSelect(selectedView)}
-          >
+          <button className="view-options-button view" onClick={() => onSelect(selectedView)}>
             View
           </button>
         </div>
@@ -252,38 +234,25 @@ function App() {
   const [CIO, setCIO] = useState([]);
   const [selectedCIOs, setSelectedCIOs] = useState([]);
   const [selectedCiols, setSelectedCiols] = useState([]);
-  const [ciolList, setCiollist] = useState([]);
+  const [ciolList, setCiolList] = useState([]);
   const [ownerList, setOwnerList] = useState([]);
   const [selectedOwners, setSelectedOwners] = useState([]);
-
-  const [Portfolio_OwnerGraphs, setPortfolio_OwnerGraphs] = useState(null);
+  const [portfolioOwnerGraphs, setPortfolioOwnerGraphs] = useState(null);
   const [Period, setPeriod] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-
   const [modalEntityName, setModalEntityName] = useState('');
-  const [Portfolio_OwnerData, setPortfolio_OwnerData] = useState([]);
+  const [portfolioOwnerData, setPortfolioOwnerData] = useState([]);
   const [navigationList, setNavigationList] = useState([]);
   const [currentOwnerIndex, setCurrentOwnerIndex] = useState(null);
   const [modalEntityType, setModalEntityType] = useState(null);
-
   const [showComparisonTable, setShowComparisonTable] = useState(false);
   const [comparisonData, setComparisonData] = useState(null);
   const [comparisonEntityType, setComparisonEntityType] = useState('');
-
   const [showViewOptionsModal, setShowViewOptionsModal] = useState(false);
   const [showDownloadOptionsModal, setShowDownloadOptionsModal] = useState(false);
-
-  const [viewOptionsContext, setViewOptionsContext] = useState({
-    entityType: null,
-    entityNames: [],
-  });
-
-  const [downloadOptionsContext, setDownloadOptionsContext] = useState({
-    entityType: null,
-    entityNames: [],
-  });
-
+  const [viewOptionsContext, setViewOptionsContext] = useState({ entityType: null, entityNames: [] });
+  const [downloadOptionsContext, setDownloadOptionsContext] = useState({ entityType: null, entityNames: [] });
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [detailsModalData, setDetailsModalData] = useState(null);
   const [detailsModalLoading, setDetailsModalLoading] = useState(false);
@@ -306,13 +275,11 @@ function App() {
 
   const handleViewSelection = (viewType) => {
     const { entityType, entityNames } = viewOptionsContext;
-
     if (viewType === 'graph') {
       handleViewGraphs(entityType, entityNames);
     } else {
       handleCreateTable(entityType, entityNames);
     }
-
     setShowViewOptionsModal(false);
   };
 
@@ -323,212 +290,103 @@ function App() {
 
   const handleDownloadSelection = (downloadType) => {
     const { entityType, entityNames } = downloadOptionsContext;
-
     if (downloadType === 'graph') {
-      handleDownloadReport(entityType, entityNames).finally(() =>
-        setShowDownloadOptionsModal(false)
-      );
+      handleDownloadReport(entityType, entityNames).finally(() => setShowDownloadOptionsModal(false));
     } else {
-      handleDownloadTableReport(entityType, entityNames).finally(() =>
-        setShowDownloadOptionsModal(false)
-      );
+      handleDownloadTableReport(entityType, entityNames).finally(() => setShowDownloadOptionsModal(false));
     }
   };
 
- const handlePointClick = async (graphkey, period, entityName, entityType) => {
-  const metricLabel = METRIC_LABELS[graphkey];
-  setDetailsModalTitle(`Details for ${entityName} - ${metricLabel} (${period})`);
-  setDetailsModalLoading(true);
-  setShowDetailsModal(true);
-  setDetailsModalData(null);
-  setCurrentGraphKey(graphkey);
+  const handlePointClick = async (graphKey, period, entityName, entityType) => {
+    const metricLabel = METRIC_LABELS[graphKey];
+    setDetailsModalTitle(`Details for ${entityName} - ${metricLabel} (${period})`);
+    setBestPerformingApps([]);
+    setDetailsModalLoading(true);
+    setShowDetailsModal(true);
+    setDetailsModalData(null);
+    setCurrentGraphKey(graphKey);
 
-  let detailsApiUrls;
-  let paramName;
+    let detailsApiUrls;
+    let infoApiUrls;
+    let paramName;
 
-  switch (entityType) {
-    case 'cio':
-      detailsApiUrls = cioDetailsApiUrls;
-      paramName = 'cio';
-      break;
-    case 'cio1':
-      detailsApiUrls = cio1DetailsApiUrls;
-      paramName = 'cio_1';
-      break;
-    case 'owner':
-      detailsApiUrls = ownerDetailsApiUrls;
-      paramName = 'portfolio_owner';
-      break;
-    default:
-      setDetailsModalLoading(false);
-      return;
-  }
-
-  const url = detailsApiUrls[graphkey];
-
-  let columns = [];
-
-  if (graphkey === 'graph1' || graphkey === 'graph2' || graphkey === 'graph3') {
-    columns = [
-      { key: 'Change_ID', label: 'Change ID' },
-      { key: 'NAR_ID', label: 'NAR ID' },
-      { key: 'Application', label: 'Application' },
-      { key: 'Period', label: 'Period' },
-      { key: 'Value', label: 'Value' },
-    ];
-  } else if (graphkey === 'graph4') {
-    columns = [
-      { key: 'Incident_ID', label: 'Incident ID' },
-      { key: 'NAR_ID', label: 'NAR ID' },
-      { key: 'Application', label: 'Application' },
-      { key: 'Outage_Hours', label: 'Outage Hours' },
-      { key: 'Period', label: 'Period' },
-      { key: 'Value', label: 'Value' },
-    ];
-  }
-
-  setDetailsModalColumns(columns);
-
-  let infoApiUrls;
-
-  switch (entityType) {
-    case 'cio':
-      infoApiUrls = cioInfoApiUrls;
-      paramName = 'cio';
-      break;
-    case 'cio1':
-      infoApiUrls = cio1InfoApiUrls;
-      paramName = 'cio_1';
-      break;
-    case 'owner':
-      infoApiUrls = ownerInfoApiUrls;
-      paramName = 'portfolio_owner';
-      break;
-    default:
-      setDetailsModalLoading(false);
-      return;
-  }
-
-  try {
-    const fetchUrl = `${url}?${paramName}=${encodeURIComponent(entityName)}&size=999999`;
-    console.log(`[handlePointClick] Fetching details from: ${fetchUrl}`);
-
-    const response = await fetch(fetchUrl);
-
-    if (!response.ok) {
-      console.error(
-        `[handlePointClick] Details fetch failed with status: ${response.status} for URL: ${fetchUrl}`
-      );
-      throw new Error(`HTTP error! status: ${response.status}`);
+    switch (entityType) {
+      case 'cio':
+        detailsApiUrls = cioDetailsApiUrls;
+        infoApiUrls = cioInfoApiUrls;
+        paramName = 'cio';
+        break;
+      case 'ciol':
+      case 'cio1':
+        detailsApiUrls = ciolDetailsApiUrls;
+        infoApiUrls = cio1InfoApiUrls;
+        paramName = 'cio1';
+        break;
+      case 'owner':
+        detailsApiUrls = ownerDetailsApiUrls;
+        infoApiUrls = ownerInfoApiUrls;
+        paramName = 'portfolioowner';
+        break;
+      default:
+        setDetailsModalLoading(false);
+        return;
     }
 
-    const data = await response.json();
-    console.log('[handlePointClick] Received details data:', data);
+    const url = detailsApiUrls[graphKey];
 
-    const allResults = Array.isArray(data)
-      ? data
-      : (data.results || data.items || data.data || []);
+    let columns = [];
+    if (graphKey === 'graph2' || graphKey === 'graph3') {
+      columns = [
+        { key: 'ChangeID', label: 'Change ID' },
+        { key: 'NARID', label: 'NAR ID' },
+        { key: 'Application', label: 'Application' },
+        { key: 'Period', label: 'Period' },
+        { key: 'Value', label: 'Value' },
+      ];
+    } else if (graphKey === 'graph4') {
+      columns = [
+        { key: 'IncidentID', label: 'Incident ID' },
+        { key: 'NARID', label: 'NAR ID' },
+        { key: 'Application', label: 'Application' },
+        { key: 'OutageHours', label: 'Outage Hours' },
+        { key: 'Period', label: 'Period' },
+        { key: 'Value', label: 'Value' },
+      ];
+    }
 
-    console.log('[handlePointClick] KK allResults data:', allResults);
+    setDetailsModalColumns(columns);
 
-    const allDetailsPromises = allResults.map(async (item) => {
-      if (graphkey === 'graph4') return item;
+    try {
+      const fetchUrl = `${url}?${paramName}=${encodeURIComponent(entityName)}&size=999999`;
+      const response = await fetch(fetchUrl);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-      const narId = item.NAR_ID;
-      const application = item.Application;
+      const data = await response.json();
+      const allResults = Array.isArray(data) ? data : data.results || data.items || data.data || [];
+      const filteredResults = allResults.filter((item) => item.Period && item.Period.trim() === period);
 
-      if (!narId || !application) return item;
-
-      const ownerUrl =
-        `${infoApiUrls[graphkey]}?${paramName}=${encodeURIComponent(entityName)}` +
-        `&nar_id=${encodeURIComponent(narId)}` +
-        `&applicationname=${encodeURIComponent(application)}`;
-
-      console.log(`Fetching infoApiUrl info from: ${ownerUrl}`);
-
-      const detailsResponse = await fetch(ownerUrl);
-
-      if (!detailsResponse.ok) {
-        console.error(
-          `Details fetch failed with status: ${detailsResponse.status} for URL: ${ownerUrl}`
-        );
-        return item;
+      if (filteredResults.length === 0) {
+        setDetailsModalData([]);
+        setNoDataMessage('All values are less than 10 for this selection.');
+        return;
       }
 
-      const detailsData = await detailsResponse.json();
+      setNoDataMessage('');
+      setDetailsModalData(filteredResults);
 
-      const changeInfo = Array.isArray(detailsData)
-        ? detailsData[0]
-        : (detailsData.results || detailsData.items || detailsData.data || [])[0];
-
-      console.log('Changeinfo KK:', changeInfo);
-      console.log('detailsData from Change details API:', detailsData);
-
-      if (changeInfo) {
-        console.log('Change Info', changeInfo);
-        console.log('Change ID', changeInfo.Change_ID ?? changeInfo.ChangeID);
-        console.log('Incident ID', changeInfo.Incident_ID ?? changeInfo.IncidentID);
-        console.log('Nar ID', changeInfo.NAR_ID ?? changeInfo.NARID);
-        console.log('Application', changeInfo.Application);
+      if (graphKey !== 'graph1') {
+        const sortedResults = [...filteredResults].sort((a, b) => Number(a.Value) - Number(b.Value));
+        setBestPerformingApps(sortedResults.slice(0, 3));
       } else {
-        console.warn('Change info is not present');
+        setBestPerformingApps([]);
       }
-
-      if (
-        changeInfo &&
-        item.NAR_ID === (changeInfo.NAR_ID ?? changeInfo.NARID) &&
-        item.Application === changeInfo.Application &&
-        item.Period === changeInfo.Period
-      ) {
-        console.log('Change info found', changeInfo);
-
-        return {
-          ...item,
-          Change_ID:
-            changeInfo.Change_ID ??
-            changeInfo.ChangeID ??
-            changeInfo.change_id ??
-            item.Change_ID,
-          Incident_ID:
-            changeInfo.Incident_ID ??
-            changeInfo.IncidentID ??
-            item.Incident_ID,
-          NAR_ID:
-            changeInfo.NAR_ID ??
-            changeInfo.NARID ??
-            item.NAR_ID,
-          Outage_Hours:
-            changeInfo.Outage_Hours ??
-            changeInfo.OutageHours ??
-            item.Outage_Hours,
-        };
-      }
-
-      return item;
-    });
-
-    const detailedResults = await Promise.all(allDetailsPromises);
-    console.log('DetailedResults KK Modal Data', detailedResults);
-
-    const filteredResults = detailedResults.filter(
-      (item) => item.Period && item.Period.trim() === period
-    );
-
-    if (allResults.length > 0 && filteredResults.length === 0) {
-      console.warn(
-        `[handlePointClick] API returned ${allResults.length} items, but none matched the period "${period}".`
-      );
+    } catch (e) {
+      console.error('Error fetching details data:', e);
+      setDetailsModalData([{ error: 'Failed to fetch data. Please check the console for details.' }]);
+    } finally {
+      setDetailsModalLoading(false);
     }
-
-    setDetailsModalData(filteredResults);
-    console.log('Details Modal Data', filteredResults);
-  } catch (e) {
-    console.error('[handlePointClick] Error fetching details data:', e);
-    setDetailsModalData([{ error: 'Failed to fetch data. Please check the console for details.' }]);
-  } finally {
-    setDetailsModalLoading(false);
-  }
-};
+  };
 
   const fetchInitialData = async () => {
     try {
@@ -538,87 +396,51 @@ function App() {
       ]);
 
       const poData = await poResponse.json();
-      const portfolioOwnerList = Array.isArray(poData)
-        ? poData
-        : poData.results || poData.items || poData.data || [];
-
-      if (!Array.isArray(portfolioOwnerList)) {
-        throw new Error('Portfolio Owner data is not an array.');
-      }
-
-      setPortfolio_OwnerData(portfolioOwnerList);
+      const portfolioOwnerList = Array.isArray(poData) ? poData : poData.results || poData.items || poData.data || [];
+      if (!Array.isArray(portfolioOwnerList)) throw new Error('Portfolio Owner data is not an array.');
+      setPortfolioOwnerData(portfolioOwnerList);
 
       const cioData = await cioResponse.json();
-      const cioListFromApi = Array.isArray(cioData)
-        ? cioData
-        : cioData.results || cioData.items || cioData.data || [];
-
-      if (!Array.isArray(cioListFromApi)) {
-        throw new Error('CIO data is not an array.');
-      }
+      const cioListFromApi = Array.isArray(cioData) ? cioData : cioData.results || cioData.items || cioData.data || [];
+      if (!Array.isArray(cioListFromApi)) throw new Error('CIO data is not an array.');
 
       const allCioRecords = [...cioListFromApi, ...portfolioOwnerList];
-      const isIdLike = (str) => /^G_\d+$/i.test(str);
-
+      const isIdLike = (str) => /^G\d+$/i.test(str);
       const peopleMap = new Map();
 
       allCioRecords.forEach((item) => {
-        const canonicalId =
-          item.UBR || item.UBR7 ? String(item.UBR || item.UBR7).trim() : null;
+        const canonicalId = item.UBR || item.UBR7 ? String(item.UBR || item.UBR7).trim() : null;
         const cioValue = item.CIO ? String(item.CIO).trim() : null;
 
         if (canonicalId) {
           if (!peopleMap.has(canonicalId)) {
-            peopleMap.set(canonicalId, {
-              canonicalId,
-              aliases: new Set(),
-            });
+            peopleMap.set(canonicalId, { canonicalId, aliases: new Set() });
           }
-
           const person = peopleMap.get(canonicalId);
           person.aliases.add(canonicalId);
-
-          if (cioValue) {
-            person.aliases.add(cioValue);
-          }
+          if (cioValue) person.aliases.add(cioValue);
         }
       });
 
       const uniqueCios = [];
-
       for (const person of peopleMap.values()) {
         const ids = Array.from(person.aliases);
         let displayName = ids.find((id) => !isIdLike(id));
-
-        if (!displayName) {
-          displayName = person.canonicalId;
-        }
-
-        uniqueCios.push({
-          name: displayName,
-          ids,
-        });
+        if (!displayName) displayName = person.canonicalId;
+        uniqueCios.push({ name: displayName, ids });
       }
 
       const finalMap = new Map();
-
       uniqueCios.forEach((cio) => {
         if (finalMap.has(cio.name)) {
           const existing = finalMap.get(cio.name);
-          const mergedIds = new Set([...existing.ids, ...cio.ids]);
-          finalMap.set(cio.name, {
-            ...existing,
-            ids: Array.from(mergedIds),
-          });
+          existing.ids = Array.from(new Set([...existing.ids, ...cio.ids]));
         } else {
-          finalMap.set(cio.name, cio);
+          finalMap.set(cio.name, { ...cio });
         }
       });
 
-      const finalCios = Array.from(finalMap.values()).sort((a, b) =>
-        a.name.localeCompare(b.name)
-      );
-
+      const finalCios = Array.from(finalMap.values()).sort((a, b) => a.name.localeCompare(b.name));
       setCIO(finalCios);
     } catch (e) {
       console.error('Error fetching initial data:', e);
@@ -628,36 +450,32 @@ function App() {
   useEffect(() => {
     if (selectedCIOs.length > 0) {
       const relevantCiols = new Map();
-
       const allSelectedCioIds = CIO
         .filter((c) => selectedCIOs.includes(c.name))
         .flatMap((c) => c.ids.map((id) => id.toLowerCase()));
 
-      Portfolio_OwnerData.forEach((owner) => {
-        if (
-          owner.CIO &&
-          allSelectedCioIds.includes(String(owner.CIO).toLowerCase())
-        ) {
-          const ciolName = owner.CIO_1 ? String(owner.CIO_1).trim() : null;
-
+      portfolioOwnerData.forEach((owner) => {
+        if (owner.CIO && allSelectedCioIds.includes(String(owner.CIO).toLowerCase())) {
+          const ciolName = owner.CIO1 ? String(owner.CIO1).trim() : null;
           if (ciolName && !relevantCiols.has(ciolName.toLowerCase())) {
             relevantCiols.set(ciolName.toLowerCase(), ciolName);
           }
         }
       });
 
-      const ciolDropdownList = Array.from(relevantCiols.values())
+      const cio1DropdownList = Array.from(relevantCiols.values())
         .map((name) => ({ name, ids: [name] }))
         .sort((a, b) => a.name.localeCompare(b.name));
 
-      setCiollist(ciolDropdownList);
+      setCiolList(cio1DropdownList);
     } else {
-      setCiollist([]);
-      setSelectedCiols([]);
+      setCiolList([]);
       setOwnerList([]);
-      setSelectedOwners([]);
     }
-  }, [selectedCIOs, CIO, Portfolio_OwnerData]);
+
+    setSelectedCiols([]);
+    setSelectedOwners([]);
+  }, [selectedCIOs, CIO, portfolioOwnerData]);
 
   useEffect(() => {
     if (selectedCIOs.length === 0) {
@@ -667,33 +485,25 @@ function App() {
     }
 
     const relevantOwners = new Map();
-    let dataToFilter = Portfolio_OwnerData;
+    let dataToFilter = portfolioOwnerData;
 
     const allSelectedCioIds = CIO
       .filter((c) => selectedCIOs.includes(c.name))
       .flatMap((c) => c.ids.map((id) => id.toLowerCase()));
 
     dataToFilter = dataToFilter.filter(
-      (item) =>
-        item.CIO &&
-        allSelectedCioIds.includes(String(item.CIO).toLowerCase())
+      (item) => item.CIO && allSelectedCioIds.includes(String(item.CIO).toLowerCase())
     );
 
     if (selectedCiols.length > 0) {
       const lowerCaseCiols = selectedCiols.map((c) => c.toLowerCase());
-
       dataToFilter = dataToFilter.filter(
-        (item) =>
-          item.CIO_1 &&
-          lowerCaseCiols.includes(String(item.CIO_1).toLowerCase())
+        (item) => item.CIO1 && lowerCaseCiols.includes(String(item.CIO1).toLowerCase())
       );
     }
 
     dataToFilter.forEach((item) => {
-      const ownerName = item.Portfolio_Owner
-        ? String(item.Portfolio_Owner).trim()
-        : null;
-
+      const ownerName = item.PortfolioOwner ? String(item.PortfolioOwner).trim() : null;
       if (ownerName && !relevantOwners.has(ownerName.toLowerCase())) {
         relevantOwners.set(ownerName.toLowerCase(), ownerName);
       }
@@ -701,13 +511,13 @@ function App() {
 
     setOwnerList(Array.from(relevantOwners.values()).sort());
     setSelectedOwners([]);
-  }, [selectedCIOs, selectedCiols, Portfolio_OwnerData, CIO]);
+  }, [selectedCIOs, selectedCiols, portfolioOwnerData, CIO]);
 
   const handleClearCioFilters = () => {
     setSelectedCIOs([]);
     setSelectedCiols([]);
     setSelectedOwners([]);
-    setCiollist([]);
+    setCiolList([]);
     setOwnerList([]);
   };
 
@@ -719,6 +529,106 @@ function App() {
   const handleClearOwnerFilters = () => {
     setSelectedOwners([]);
   };
+const fetchDataForEntity = async (entityName, urls, roles, entityType) => {
+  try {
+    const normalizeData = (data) => {
+      if (Array.isArray(data)) return data;
+      if (data?.results && Array.isArray(data.results)) return data.results;
+      if (data?.items && Array.isArray(data.items)) return data.items;
+      if (data?.data && Array.isArray(data.data)) return data.data;
+      return [];
+    };
+
+    const allFetchPromises = [];
+
+    for (const { param } of roles) {
+      for (const [key, url] of Object.entries(urls)) {
+        const fetchUrl = `${url}?${param}=${encodeURIComponent(entityName)}`;
+        allFetchPromises.push(
+          fetch(fetchUrl)
+            .then((res) => res.json())
+            .then((jsonData) => ({
+              key,
+              data: normalizeData(jsonData),
+            }))
+        );
+      }
+    }
+
+    const allRoleData = await Promise.all(allFetchPromises);
+
+    const periodNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const formatPeriodFromDate = (date) => `${periodNames[date.getMonth()]}-${date.getFullYear()}`;
+
+    const generateLast6Months = () => {
+      const periods = [];
+      const now = new Date();
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        periods.push(formatPeriodFromDate(date));
+      }
+      return periods;
+    };
+
+    const last6MonthPeriods = generateLast6Months();
+    const graphsData = {};
+
+    Object.keys(urls).forEach((graphKey) => {
+      const dataForGraph = allRoleData.filter((d) => d.key === graphKey);
+      const combinedData = dataForGraph.reduce((acc, curr) => acc.concat(curr.data), []);
+
+      if (entityType === 'cio') {
+        const divisionMap = new Map();
+
+        combinedData.forEach((point) => {
+          if (!point || !point.Period) return;
+
+          const division = point.Division?.trim() || 'N/A';
+          const period = point.Period.trim();
+          const value = Number(point.Value) || 0;
+          const label = `${entityName} - ${division}`;
+
+          if (!divisionMap.has(label)) {
+            divisionMap.set(label, {
+              name: label,
+              division,
+              valuesByPeriod: {},
+            });
+          }
+
+          divisionMap.get(label).valuesByPeriod[period] = value;
+        });
+
+        graphsData[graphKey] = Array.from(divisionMap.values()).map((item) => ({
+          name: item.name,
+          division: item.division,
+          data: last6MonthPeriods.map((p) => item.valuesByPeriod[p] ?? 0),
+        }));
+      } else {
+        const dataByPeriod = new Map();
+
+        combinedData.forEach((point) => {
+          if (point && point.Period) {
+            dataByPeriod.set(point.Period.trim(), point);
+          }
+        });
+
+        const graphData = Array.from(dataByPeriod.values());
+
+        graphsData[graphKey] = last6MonthPeriods.map((p) => {
+          const point = graphData.find((g) => g?.Period?.trim() === p);
+          return point?.Value ?? 0;
+        });
+      }
+    });
+
+    return { graphsData, period: last6MonthPeriods };
+  } catch (e) {
+    console.error('Error fetching graph data:', e);
+    return { graphsData: null, period: [] };
+  }
+};
 
   const fetchAndShowModal = async (entityType, entityName) => {
     let urls;
@@ -729,32 +639,29 @@ function App() {
         urls = cioGraphApiUrls;
         roles = [{ role: 'cio', param: 'cio' }];
         break;
-
       case 'ciol':
       case 'cio1':
         urls = ciolGraphApiUrls;
-        roles = [{ role: 'cio_1', param: 'cio_1' }];
+        roles = [{ role: 'cio1', param: 'cio1' }];
         break;
-
       case 'owner':
         urls = ownerGraphApiUrls;
         roles = [
-          { role: 'portfolio_owner', param: 'portfolio_owner' },
-          { role: 'cio_1', param: 'cio_1' },
+          { role: 'portfolioowner', param: 'portfolioowner' },
+          { role: 'cio1', param: 'cio1' },
         ];
         break;
-
       default:
         return;
     }
 
     setLoading(true);
     setModalEntityName(entityName);
-    setPortfolio_OwnerGraphs(null);
+    setPortfolioOwnerGraphs(null);
 
     try {
       const { graphsData, period } = await fetchDataForEntity(entityName, urls, roles);
-      setPortfolio_OwnerGraphs(graphsData);
+      setPortfolioOwnerGraphs(graphsData);
       setPeriod(period);
     } catch (e) {
       console.error(`Error fetching graph data for ${entityType}:`, e);
@@ -765,7 +672,6 @@ function App() {
 
   const handleViewGraphs = (entityType, entityNames) => {
     if (!entityNames || entityNames.length === 0) return;
-
     setNavigationList(entityNames);
     setCurrentOwnerIndex(0);
     setModalEntityType(entityType);
@@ -773,12 +679,9 @@ function App() {
   };
 
   const handleDownloadReport = async (entityType, entityNames) => {
-    if (!entityNames || entityNames.length === 0) {
-      return;
-    }
+    if (!entityNames || entityNames.length === 0) return;
 
     setIsGeneratingPdf(true);
-
     let urls;
     let roles;
 
@@ -787,21 +690,18 @@ function App() {
         urls = cioGraphApiUrls;
         roles = [{ role: 'cio', param: 'cio' }];
         break;
-
       case 'ciol':
       case 'cio1':
         urls = ciolGraphApiUrls;
-        roles = [{ role: 'cio_1', param: 'cio_1' }];
+        roles = [{ role: 'cio1', param: 'cio1' }];
         break;
-
       case 'owner':
         urls = ownerGraphApiUrls;
         roles = [
-          { role: 'portfolio_owner', param: 'portfolio_owner' },
-          { role: 'cio_1', param: 'cio_1' },
+          { role: 'portfolioowner', param: 'portfolioowner' },
+          { role: 'cio1', param: 'cio1' },
         ];
         break;
-
       default:
         setIsGeneratingPdf(false);
         return;
@@ -815,7 +715,6 @@ function App() {
       try {
         const img = new Image();
         img.src = doraFrontPage;
-
         await new Promise((resolve, reject) => {
           img.onload = resolve;
           img.onerror = reject;
@@ -825,12 +724,7 @@ function App() {
 
         const currentDate = new Date();
         currentDate.setMonth(currentDate.getMonth() - 1);
-
-        const monthYear = currentDate.toLocaleString('default', {
-          month: 'short',
-          year: 'numeric',
-        });
-
+        const monthYear = currentDate.toLocaleString('default', { month: 'short', year: 'numeric' });
         pdf.setFontSize(14);
         pdf.setTextColor(255, 255, 255);
         pdf.text(monthYear, 20, 160);
@@ -840,10 +734,7 @@ function App() {
 
       for (const entityName of entityNames) {
         const { graphsData, period } = await fetchDataForEntity(entityName, urls, roles);
-
-        if (!graphsData) {
-          continue;
-        }
+        if (!graphsData) continue;
 
         const tempContainer = document.createElement('div');
         document.body.appendChild(tempContainer);
@@ -861,18 +752,16 @@ function App() {
         await new Promise((resolve) => {
           root.render(
             <div>
-              <h2 style={{ textAlign: 'center', color: '#1e3a8a' }}>
-                DORA Report: {entityName}
-              </h2>
-              <Portfolio_OwnerModal
-                Portfolio_Owner={entityName}
-                Portfolio_OwnerData={graphsData}
+              <h2 style={{ textAlign: 'center', color: '#1e3a8a' }}>DORA Report: {entityName}</h2>
+              <PortfolioOwnerModal
+                PortfolioOwner={entityName}
+                PortfolioOwnerData={graphsData}
                 Period={period}
                 loading={false}
+                renderAsDiv={true}
               />
             </div>
           );
-
           setTimeout(resolve, 1500);
         });
 
@@ -899,86 +788,101 @@ function App() {
     }
   };
 
-  const fetchDataForEntity = async (entityName, urls, roles) => {
+  const handleCreateTable = async (entityType, entityNames, forDownload = false) => {
+    if (!entityNames || entityNames.length === 0) {
+      if (forDownload) return null;
+      return;
+    }
+
+    if (!forDownload) {
+      setModalEntityName('');
+      setShowComparisonTable(true);
+      setLoading(true);
+      setComparisonData(null);
+      setComparisonEntityType(entityType);
+    }
+
+    let urls;
+    let roles;
+
+    switch (entityType) {
+      case 'cio':
+        urls = cioGraphApiUrls;
+        roles = [{ role: 'cio', param: 'cio' }];
+        break;
+      case 'ciol':
+      case 'cio1':
+        urls = ciolGraphApiUrls;
+        roles = [{ role: 'cio1', param: 'cio1' }];
+        break;
+      case 'owner':
+        urls = ownerGraphApiUrls;
+        roles = [
+          { role: 'portfolioowner', param: 'portfolioowner' },
+          { role: 'cio1', param: 'cio1' },
+        ];
+        break;
+      default:
+        setLoading(false);
+        return;
+    }
+
+    const allData = { graph1: [], graph2: [], graph3: [], graph4: [], period: [] };
+
     try {
-      const normalizeData = (data) => {
-        if (Array.isArray(data)) return data;
-        if (data?.results && Array.isArray(data.results)) return data.results;
-        if (data?.items && Array.isArray(data.items)) return data.items;
-        if (data?.data && Array.isArray(data.data)) return data.data;
-        return [];
-      };
+      const promises = entityNames.map((name) => fetchDataForEntity(name, urls, roles));
+      const results = await Promise.all(promises);
 
-      const allFetchPromises = [];
+      results.forEach((result, index) => {
+        const entityName = entityNames[index];
+        let division = 'N/A';
 
-      for (const { param } of roles) {
-        for (const [key, url] of Object.entries(urls)) {
-          const fetchUrl = `${url}?${param}=${encodeURIComponent(entityName)}`;
+        if (portfolioOwnerData && portfolioOwnerData.length > 0) {
+          let record;
+          const lowerEntityName = String(entityName).toLowerCase();
 
-          allFetchPromises.push(
-            fetch(fetchUrl)
-              .then((res) => res.json())
-              .then((jsonData) => ({ key, data: normalizeData(jsonData) }))
-          );
-        }
-      }
-
-      const allRoleData = await Promise.all(allFetchPromises);
-      const responsesByKey = {};
-
-      Object.keys(urls).forEach((key) => {
-        const dataForGraph = allRoleData.filter((d) => d.key === key);
-        const combinedData = dataForGraph.reduce((acc, curr) => acc.concat(curr.data), []);
-
-        const dataByPeriod = new Map();
-        combinedData.forEach((point) => {
-          if (point && point.Period) {
-            dataByPeriod.set(point.Period.trim(), point);
+          if (entityType === 'cio') {
+            const cioObject = CIO.find((c) => String(c.name).toLowerCase() === lowerEntityName);
+            if (cioObject) {
+              const cioIds = cioObject.ids.map((id) => String(id).toLowerCase());
+              record = portfolioOwnerData.find(
+                (d) => d.CIO && cioIds.includes(String(d.CIO).toLowerCase())
+              );
+            }
+          } else if (entityType === 'ciol' || entityType === 'cio1') {
+            record = portfolioOwnerData.find(
+              (d) => d.CIO1 && String(d.CIO1).toLowerCase() === lowerEntityName
+            );
+          } else if (entityType === 'owner') {
+            record = portfolioOwnerData.find(
+              (d) => d.PortfolioOwner && String(d.PortfolioOwner).toLowerCase() === lowerEntityName
+            );
           }
-        });
 
-        responsesByKey[key] = Array.from(dataByPeriod.values());
-      });
-
-      const periodNames = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-      ];
-
-      const formatPeriodFromDate = (date) => {
-        return `${periodNames[date.getMonth()]}-${date.getFullYear()}`;
-      };
-
-      const generateLast6Months = () => {
-        const periods = [];
-        const now = new Date();
-
-        for (let i = 6; i > 0; i--) {
-          const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          periods.push(formatPeriodFromDate(date));
+          if (record?.Division) {
+            division = record.Division;
+          }
         }
 
-        return periods;
-      };
-
-      const last6MonthPeriods = generateLast6Months();
-
-      const graphsData = {};
-      Object.keys(urls).forEach((graphKey) => {
-        const graphData = responsesByKey[graphKey] || [];
-
-        const graphPoints = last6MonthPeriods.map((p) => {
-          const point = graphData.find((g) => g && g.Period && g.Period.trim() === p);
-          return point?.Value ?? 0;
-        });
-
-        graphsData[graphKey] = graphPoints;
+        if (result?.graphsData) {
+          if (index === 0) allData.period = result.period;
+          Object.keys(result.graphsData).forEach((graphKey) => {
+            allData[graphKey].push({
+              name: entityName,
+              Division: division,
+              data: result.graphsData[graphKey],
+            });
+          });
+        }
       });
 
-      return { graphsData, period: last6MonthPeriods };
+      if (forDownload) return allData;
+      setComparisonData(allData);
     } catch (e) {
-      console.error('Error fetching graph data:', e);
-      return { graphsData: null, period: [] };
+      console.error('Error creating comparison table:', e);
+      if (forDownload) return null;
+    } finally {
+      if (!forDownload) setLoading(false);
     }
   };
 
@@ -989,7 +893,6 @@ function App() {
 
     try {
       const tableData = await handleCreateTable(entityType, entityNames, true);
-
       if (!tableData || !tableData.period || tableData.period.length === 0) {
         throw new Error('No data available to generate table report.');
       }
@@ -1015,12 +918,8 @@ function App() {
 
         const getCellBackgroundColor = (value) => {
           if (typeof value !== 'number') return 'transparent';
-
           const threshold = METRIC_THRESHOLDS[graphKey];
-          if (graphKey === 'graph1') {
-            return value < threshold ? '#fecaca' : '#bbf7d0';
-          }
-
+          if (graphKey === 'graph1') return value < threshold ? '#fecaca' : '#bbf7d0';
           return value > threshold ? '#fecaca' : '#bbf7d0';
         };
 
@@ -1073,34 +972,13 @@ function App() {
                 display: 'block',
               }}
             >
-              <TempTable
-                title={METRIC_LABELS.graph1}
-                data={tableData.graph1}
-                period={tableData.period}
-                graphKey="graph1"
-              />
-              <TempTable
-                title={METRIC_LABELS.graph2}
-                data={tableData.graph2}
-                period={tableData.period}
-                graphKey="graph2"
-              />
-              <TempTable
-                title={METRIC_LABELS.graph3}
-                data={tableData.graph3}
-                period={tableData.period}
-                graphKey="graph3"
-              />
-              <TempTable
-                title={METRIC_LABELS.graph4}
-                data={tableData.graph4}
-                period={tableData.period}
-                graphKey="graph4"
-              />
+              <TempTable title={METRIC_LABELS.graph1} data={tableData.graph1} period={tableData.period} graphKey="graph1" />
+              <TempTable title={METRIC_LABELS.graph2} data={tableData.graph2} period={tableData.period} graphKey="graph2" />
+              <TempTable title={METRIC_LABELS.graph3} data={tableData.graph3} period={tableData.period} graphKey="graph3" />
+              <TempTable title={METRIC_LABELS.graph4} data={tableData.graph4} period={tableData.period} graphKey="graph4" />
             </div>
           </div>
         );
-
         setTimeout(resolve, 1000);
       });
 
@@ -1110,11 +988,9 @@ function App() {
 
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const margin = 10;
-
       const imgProps = pdf.getImageProperties(imgData);
       const imgWidth = pdfWidth - 2 * margin;
       const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
@@ -1124,11 +1000,10 @@ function App() {
 
       pdf.text(`Dora Report: ${entityType.toUpperCase()}`, margin, margin);
       pdf.addImage(imgData, 'PNG', margin, position + 10, imgWidth, imgHeight);
-
       heightLeft -= pdfHeight - (margin + 10) - margin;
 
       while (heightLeft > 0) {
-        position -= pdfHeight - 2 * margin;
+        position = -(pdfHeight - 2 * margin);
         pdf.addPage();
         pdf.addImage(imgData, 'PNG', margin, position + margin, imgWidth, imgHeight);
         heightLeft -= pdfHeight - 2 * margin;
@@ -1145,135 +1020,14 @@ function App() {
 
   const closeModal = () => {
     setModalEntityName('');
-    setPortfolio_OwnerGraphs(null);
+    setPortfolioOwnerGraphs(null);
     setPeriod([]);
-  };
-
-  const handleCreateTable = async (entityType, entityNames, forDownload = false) => {
-    if (!entityNames || entityNames.length === 0) {
-      if (forDownload) return null;
-      return;
-    }
-
-    if (!forDownload) {
-      setModalEntityName('');
-      setShowComparisonTable(true);
-      setLoading(true);
-      setComparisonData(null);
-      setComparisonEntityType(entityType);
-    }
-
-    let urls;
-    let roles;
-
-    switch (entityType) {
-      case 'cio':
-        urls = cioGraphApiUrls;
-        roles = [{ role: 'cio', param: 'cio' }];
-        break;
-
-      case 'ciol':
-      case 'cio1':
-        urls = ciolGraphApiUrls;
-        roles = [{ role: 'cio_1', param: 'cio_1' }];
-        break;
-
-      case 'owner':
-        urls = ownerGraphApiUrls;
-        roles = [
-          { role: 'portfolio_owner', param: 'portfolio_owner' },
-          { role: 'cio_1', param: 'cio_1' },
-        ];
-        break;
-
-      default:
-        setLoading(false);
-        return;
-    }
-
-    const allData = {
-      graph1: [],
-      graph2: [],
-      graph3: [],
-      graph4: [],
-      period: [],
-    };
-
-    try {
-      const promises = entityNames.map((name) => fetchDataForEntity(name, urls, roles));
-      const results = await Promise.all(promises);
-
-      results.forEach((result, index) => {
-        const entityName = entityNames[index];
-        let division = 'N/A';
-
-        if (Portfolio_OwnerData && Portfolio_OwnerData.length > 0) {
-          let record;
-          const lowerEntityName = String(entityName).toLowerCase();
-
-          if (entityType === 'cio') {
-            const cioObject = CIO.find(
-              (c) => String(c.name).toLowerCase() === lowerEntityName
-            );
-
-            if (cioObject) {
-              const cioIds = cioObject.ids.map((id) => String(id).toLowerCase());
-              record = Portfolio_OwnerData.find(
-                (d) => d.CIO && cioIds.includes(String(d.CIO).toLowerCase())
-              );
-            }
-          } else if (entityType === 'ciol' || entityType === 'cio1') {
-            record = Portfolio_OwnerData.find(
-              (d) => d.CIO_1 && String(d.CIO_1).toLowerCase() === lowerEntityName
-            );
-          } else if (entityType === 'owner') {
-            record = Portfolio_OwnerData.find(
-              (d) =>
-                d.Portfolio_Owner &&
-                String(d.Portfolio_Owner).toLowerCase() === lowerEntityName
-            );
-          }
-
-          if (record && record.Division) {
-            division = record.Division;
-          }
-        }
-
-        if (result && result.graphsData) {
-          if (index === 0) {
-            allData.period = result.period;
-          }
-
-          Object.keys(result.graphsData).forEach((graphKey) => {
-            allData[graphKey].push({
-              name: entityName,
-              Division: division,
-              data: result.graphsData[graphKey],
-            });
-          });
-        }
-      });
-
-      if (forDownload) {
-        return allData;
-      }
-
-      setComparisonData(allData);
-    } catch (e) {
-      console.error('Error creating comparison table:', e);
-      if (forDownload) return null;
-    } finally {
-      if (!forDownload) {
-        setLoading(false);
-      }
-    }
   };
 
   const handleGraphNavigation = (direction) => {
     if (currentOwnerIndex === null) return;
 
     const newIndex = currentOwnerIndex + direction;
-
     if (newIndex >= 0 && newIndex < navigationList.length) {
       setCurrentOwnerIndex(newIndex);
       const nextEntityName = navigationList[newIndex];
@@ -1282,53 +1036,45 @@ function App() {
   };
 
   let cioInfoForModal = '';
-
   if (modalEntityName && selectedCIOs.length > 0) {
     const allSelectedCioIds = CIO
       .filter((c) => selectedCIOs.includes(c.name))
       .flatMap((c) => c.ids.map((id) => id.toLowerCase()));
 
     if (modalEntityType === 'ciol' || modalEntityType === 'cio1') {
-      const record = Portfolio_OwnerData.find(
+      const record = portfolioOwnerData.find(
         (d) =>
-          d.CIO_1 === modalEntityName &&
+          d.CIO1 === modalEntityName &&
           d.CIO &&
           allSelectedCioIds.includes(String(d.CIO).toLowerCase())
       );
 
-      if (record && record.CIO) {
+      if (record?.CIO) {
         const cioObject = CIO.find((c) =>
           c.ids.map((id) => id.toLowerCase()).includes(String(record.CIO).toLowerCase())
         );
-
         cioInfoForModal = `CIO: ${cioObject ? cioObject.name : record.CIO}`;
       }
     } else if (modalEntityType === 'owner') {
-      const lowerCaseCiols = selectedCiols.map((c) => c.toLowerCase());
+      const lowerCaseCio1s = selectedCiols.map((c) => c.toLowerCase());
 
-      const record = Portfolio_OwnerData.find((d) => {
-        if (d.Portfolio_Owner !== modalEntityName) return false;
-
-        const matchesCio =
-          d.CIO && allSelectedCioIds.includes(String(d.CIO).toLowerCase());
-
+      const record = portfolioOwnerData.find((d) => {
+        if (d.PortfolioOwner !== modalEntityName) return false;
+        const matchesCio = d.CIO && allSelectedCioIds.includes(String(d.CIO).toLowerCase());
         if (!matchesCio) return false;
-
-        if (lowerCaseCiols.length > 0) {
-          return d.CIO_1 && lowerCaseCiols.includes(String(d.CIO_1).toLowerCase());
+        if (lowerCaseCio1s.length > 0) {
+          return d.CIO1 && lowerCaseCio1s.includes(String(d.CIO1).toLowerCase());
         }
-
         return true;
       });
 
       if (record) {
-        if (record.CIO_1) {
-          cioInfoForModal = `CIO-1: ${record.CIO_1}`;
+        if (record.CIO1) {
+          cioInfoForModal = `CIO-1: ${record.CIO1}`;
         } else if (record.CIO) {
           const cioObject = CIO.find((c) =>
             c.ids.map((id) => id.toLowerCase()).includes(String(record.CIO).toLowerCase())
           );
-
           cioInfoForModal = `CIO: ${cioObject ? cioObject.name : record.CIO}`;
         }
       }
@@ -1340,65 +1086,53 @@ function App() {
       <header className="app-header">
         <h1 className="app-title">DORA Report</h1>
         <p className="app-subtitle">
-          This dashboard provides an overview of DORA metrics (Deployment Frequency,
-          Lead Time for Changes, Change Failure Rate, and Time to Restore).
+          This dashboard provides an overview of DORA metrics: Deployment Frequency,
+          Lead Time for Changes, Change Failure Rate, and Time to Restore.
         </p>
       </header>
 
       <main className="main-content">
         <div className="info-section">
           <h2>Understanding the DORA Metrics</h2>
-
           <div className="metrics-definitions">
             <div className="metric-item">
               <div className="metric-title">Release Frequency (2 months avg.)</div>
               <div className="metric-description">
-                This metric reflects the volume of releases relative to the volume of
-                applications in scope on a 2-month rolling average.
+                This metric reflects the volume of releases relative to the volume of applications in scope.
               </div>
             </div>
-
             <div className="metric-item">
               <div className="metric-title">Lead Time for Change (days)</div>
               <div className="metric-description">
-                This metric shows the average time in days between the start of change
-                approval and the end of implementation.
+                This metric shows the average time between approval and implementation completion.
               </div>
             </div>
-
             <div className="metric-item">
               <div className="metric-title">Change Failure Rate (%)</div>
               <div className="metric-description">
-                This metric is the percentage of failed changes from the overall change
-                population.
+                This metric is the percentage of failed changes from the overall change population.
               </div>
             </div>
-
             <div className="metric-item">
               <div className="metric-title">Mean Time to Recover (hours)</div>
               <div className="metric-description">
-                Recovery time is defined as the internal outage duration, documented as
-                internal outage or internal degradation in the source system.
+                Recovery time is the outage duration recorded in the source system.
               </div>
             </div>
           </div>
         </div>
 
         <div className="selector">
-          <p>
-            Select one or more items from each category to filter the lists below.
-            Click &quot;View Report&quot; to open graphs or comparison tables.
-          </p>
+          <p>Select one or more items from each category to filter the lists below.</p>
 
           <div className="cio-select-container">
-            <label>Select CIO:</label>
+            <label>Select CIO</label>
             <MultiSelectDropdown
               options={CIO.map((c) => c.name)}
               selectedItems={selectedCIOs}
               setSelectedItems={setSelectedCIOs}
-              title="CIO(s)"
+              title="CIOs"
             />
-
             <div className="button-group">
               <button
                 className="clear-filters-button"
@@ -1407,7 +1141,6 @@ function App() {
               >
                 Clear Filters
               </button>
-
               <button
                 className="view-graphs-button"
                 onClick={() => handleOpenViewOptions('cio', selectedCIOs)}
@@ -1415,7 +1148,6 @@ function App() {
               >
                 View Report
               </button>
-
               <button
                 className="view-graphs-button"
                 onClick={() => handleOpenDownloadOptions('cio', selectedCIOs)}
@@ -1428,105 +1160,97 @@ function App() {
 
           {selectedCIOs.length > 0 && (
             <div className="selected-items-display">
-              <strong>Selected CIO(s):</strong> {selectedCIOs.join(', ')}
+              <strong>Selected CIOs:</strong> {selectedCIOs.join(', ')}
             </div>
           )}
 
           {selectedCIOs.length > 0 && (
-            <>
-              <div className="cio-select-container">
-                <label>Select CIO-1:</label>
-                <MultiSelectDropdown
-                  options={ciolList.map((c) => c.name)}
-                  selectedItems={selectedCiols}
-                  setSelectedItems={setSelectedCiols}
-                  title="CIO-1(s)"
-                />
-
-                <div className="button-group">
-                  <button
-                    className="clear-filters-button"
-                    onClick={handleClearCiolFilters}
-                    disabled={selectedCiols.length === 0 || isGeneratingPdf}
-                  >
-                    Clear Filters
-                  </button>
-
-                  <button
-                    className="view-graphs-button"
-                    onClick={() => handleOpenViewOptions('ciol', selectedCiols)}
-                    disabled={selectedCiols.length === 0 || isGeneratingPdf}
-                  >
-                    View Report
-                  </button>
-
-                  <button
-                    className="view-graphs-button"
-                    onClick={() => handleOpenDownloadOptions('ciol', selectedCiols)}
-                    disabled={selectedCiols.length === 0 || isGeneratingPdf}
-                  >
-                    Download Report
-                  </button>
-                </div>
+            <div className="cio-select-container">
+              <label>Select CIO-1</label>
+              <MultiSelectDropdown
+                options={ciolList.map((c) => c.name)}
+                selectedItems={selectedCiols}
+                setSelectedItems={setSelectedCiols}
+                title="CIO-1s"
+              />
+              <div className="button-group">
+                <button
+                  className="clear-filters-button"
+                  onClick={handleClearCiolFilters}
+                  disabled={selectedCiols.length === 0 || isGeneratingPdf}
+                >
+                  Clear Filters
+                </button>
+                <button
+                  className="view-graphs-button"
+                  onClick={() => handleOpenViewOptions('ciol', selectedCiols)}
+                  disabled={selectedCiols.length === 0 || isGeneratingPdf}
+                >
+                  View Report
+                </button>
+                <button
+                  className="view-graphs-button"
+                  onClick={() => handleOpenDownloadOptions('ciol', selectedCiols)}
+                  disabled={selectedCiols.length === 0 || isGeneratingPdf}
+                >
+                  Download Report
+                </button>
               </div>
+            </div>
+          )}
 
-              {selectedCiols.length > 0 && (
-                <div className="selected-items-display">
-                  <strong>Selected CIO-1(s):</strong> {selectedCiols.join(', ')}
-                </div>
-              )}
+          {selectedCiols.length > 0 && (
+            <div className="selected-items-display">
+              <strong>Selected CIO-1s:</strong> {selectedCiols.join(', ')}
+            </div>
+          )}
 
-              <div className="cio-select-container">
-                <label>Select Portfolio Owner:</label>
-                <MultiSelectDropdown
-                  options={ownerList}
-                  selectedItems={selectedOwners}
-                  setSelectedItems={setSelectedOwners}
-                  title="Portfolio Owner(s)"
-                />
+          <div className="cio-select-container">
+            <label>Select Portfolio Owner</label>
+            <MultiSelectDropdown
+              options={ownerList}
+              selectedItems={selectedOwners}
+              setSelectedItems={setSelectedOwners}
+              title="Portfolio Owners"
+            />
+            <div className="button-group">
+              <button
+                className="clear-filters-button"
+                onClick={handleClearOwnerFilters}
+                disabled={selectedOwners.length === 0 || isGeneratingPdf}
+              >
+                Clear Filters
+              </button>
+              <button
+                className="view-graphs-button"
+                onClick={() => handleOpenViewOptions('owner', selectedOwners)}
+                disabled={selectedOwners.length === 0 || isGeneratingPdf}
+              >
+                View Report
+              </button>
+              <button
+                className="view-graphs-button"
+                onClick={() => handleOpenDownloadOptions('owner', selectedOwners)}
+                disabled={selectedOwners.length === 0 || isGeneratingPdf}
+              >
+                Download Report
+              </button>
+            </div>
+          </div>
 
-                <div className="button-group">
-                  <button
-                    className="clear-filters-button"
-                    onClick={handleClearOwnerFilters}
-                    disabled={selectedOwners.length === 0 || isGeneratingPdf}
-                  >
-                    Clear Filters
-                  </button>
-
-                  <button
-                    className="view-graphs-button"
-                    onClick={() => handleOpenViewOptions('owner', selectedOwners)}
-                    disabled={selectedOwners.length === 0 || isGeneratingPdf}
-                  >
-                    View Report
-                  </button>
-
-                  <button
-                    className="view-graphs-button"
-                    onClick={() => handleOpenDownloadOptions('owner', selectedOwners)}
-                    disabled={selectedOwners.length === 0 || isGeneratingPdf}
-                  >
-                    Download Report
-                  </button>
-                </div>
-              </div>
-
-              {selectedOwners.length > 0 && (
-                <div className="selected-items-display">
-                  <strong>Selected Portfolio Owner(s):</strong> {selectedOwners.join(', ')}
-                </div>
-              )}
-            </>
+          {selectedOwners.length > 0 && (
+            <div className="selected-items-display">
+              <strong>Selected Portfolio Owners:</strong> {selectedOwners.join(', ')}
+            </div>
           )}
         </div>
 
         {modalEntityName && (
-          <Portfolio_OwnerModal
+          <PortfolioOwnerModal
             cio={cioInfoForModal}
-            Portfolio_Owner={modalEntityName}
+            PortfolioOwner={modalEntityName}
             Period={Period}
-            Portfolio_OwnerData={Portfolio_OwnerGraphs}
+            PortfolioOwnerData={portfolioOwnerGraphs}
             onClose={closeModal}
             loading={loading}
             onNavigate={handleGraphNavigation}
@@ -1569,7 +1293,8 @@ function App() {
             columns={detailsModalColumns}
             loading={detailsModalLoading}
             onClose={() => setShowDetailsModal(false)}
-            threshold={currentGraphKey ? METRIC_THRESHOLDS[currentGraphKey] : null}
+            threshold={METRIC_THRESHOLDS[currentGraphKey] ?? null}
+            currentGraphKey={currentGraphKey}
             noDataMessage={noDataMessage}
             bestPerformingApps={bestPerformingApps}
           />
