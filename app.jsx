@@ -243,7 +243,7 @@ function App() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [modalEntityName, setModalEntityName] = useState('');
   const [portfolioOwnerData, setPortfolioOwnerData] = useState([]);
-  const [navigationList, setNavigationList] = useState([]);
+  const [navigationList, setNavigationList] = useState([]); // now pages
   const [currentOwnerIndex, setCurrentOwnerIndex] = useState(null);
   const [modalEntityType, setModalEntityType] = useState(null);
   const [showComparisonTable, setShowComparisonTable] = useState(false);
@@ -473,7 +473,8 @@ function App() {
     }
   };
 
-  // NEW: get all divisions for a given CIO display name
+  // ---- NEW HELPERS FOR CIO + DIVISION PAGES ----
+
   const getDivisionsForCio = (cioName) => {
     const cioObj = CIO.find(
       (c) => String(c.name).toLowerCase() === String(cioName).toLowerCase()
@@ -495,6 +496,36 @@ function App() {
 
     return Array.from(divisions);
   };
+
+  const buildPages = (entityType, entityNames) => {
+    if (!entityNames || entityNames.length === 0) return [];
+
+    if (entityType === 'cio') {
+      const pages = [];
+      entityNames.forEach((cioName) => {
+        const divisions = getDivisionsForCio(cioName);
+        if (!divisions.length) {
+          pages.push({ entityName: cioName, label: cioName });
+        } else {
+          divisions.forEach((division) => {
+            pages.push({
+              entityName: cioName,
+              label: `${cioName} - ${division}`,
+            });
+          });
+        }
+      });
+      return pages;
+    }
+
+    // ciol / owner unchanged
+    return entityNames.map((name) => ({
+      entityName: name,
+      label: name,
+    }));
+  };
+
+  // ----------------------------------------------
 
   useEffect(() => {
     if (selectedCIOs.length > 0) {
@@ -579,8 +610,7 @@ function App() {
     setSelectedOwners([]);
   };
 
-  // UPDATED: optional division filter
-  const fetchDataForEntity = async (entityName, urls, roles, division) => {
+  const fetchDataForEntity = async (entityName, urls, roles) => {
     try {
       const normalizeData = (data) => {
         if (Array.isArray(data)) return data;
@@ -608,17 +638,7 @@ function App() {
 
       Object.keys(urls).forEach((key) => {
         const dataForGraph = allRoleData.filter((d) => d.key === key);
-        let combinedData = dataForGraph.reduce((acc, curr) => acc.concat(curr.data), []);
-
-        // If graph API returns Division, filter by division for CIO+Division pages
-        if (division) {
-          combinedData = combinedData.filter(
-            (point) =>
-              point &&
-              point.Division &&
-              String(point.Division).trim().toLowerCase() === division.toLowerCase()
-          );
-        }
+        const combinedData = dataForGraph.reduce((acc, curr) => acc.concat(curr.data), []);
 
         const dataByPeriod = new Map();
         combinedData.forEach((point) => {
@@ -673,58 +693,38 @@ function App() {
     }
   };
 
-  // UPDATED: now accepts CIO+Division config
-  const fetchAndShowModal = async (entityType, entityConfig) => {
+  // updated: optional labelOverride for CIO+Division
+  const fetchAndShowModal = async (entityType, entityName, labelOverride) => {
     let urls;
     let roles;
-    let displayName;
-    let division = null;
 
-    if (entityType === 'cioDivision') {
-      // entityConfig: { cioName, division, label }
-      displayName = entityConfig.label || entityConfig.cioName;
-      division = entityConfig.division;
-      urls = cioGraphApiUrls;
-      roles = [{ role: 'cio', param: 'cio' }];
-    } else {
-      const entityName = entityConfig; // string
-      switch (entityType) {
-        case 'cio':
-          urls = cioGraphApiUrls;
-          roles = [{ role: 'cio', param: 'cio' }];
-          displayName = entityName;
-          break;
-        case 'ciol':
-        case 'cio1':
-          urls = ciolGraphApiUrls;
-          roles = [{ role: 'cio1', param: 'cio1' }];
-          displayName = entityName;
-          break;
-        case 'owner':
-          urls = ownerGraphApiUrls;
-          roles = [
-            { role: 'portfolioowner', param: 'portfolioowner' },
-            { role: 'cio1', param: 'cio1' },
-          ];
-          displayName = entityName;
-          break;
-        default:
-          return;
-      }
+    switch (entityType) {
+      case 'cio':
+        urls = cioGraphApiUrls;
+        roles = [{ role: 'cio', param: 'cio' }];
+        break;
+      case 'ciol':
+      case 'cio1':
+        urls = ciolGraphApiUrls;
+        roles = [{ role: 'cio1', param: 'cio1' }];
+        break;
+      case 'owner':
+        urls = ownerGraphApiUrls;
+        roles = [
+          { role: 'portfolioowner', param: 'portfolioowner' },
+          { role: 'cio1', param: 'cio1' },
+        ];
+        break;
+      default:
+        return;
     }
 
     setLoading(true);
-    setModalEntityType(entityType);
-    setModalEntityName(displayName);
+    setModalEntityName(labelOverride || entityName);
     setPortfolioOwnerGraphs(null);
 
     try {
-      const { graphsData, period } = await fetchDataForEntity(
-        entityType === 'cioDivision' ? entityConfig.cioName : displayName,
-        urls,
-        roles,
-        division
-      );
+      const { graphsData, period } = await fetchDataForEntity(entityName, urls, roles);
       setPortfolioOwnerGraphs(graphsData);
       setPeriod(period);
     } catch (e) {
@@ -734,102 +734,46 @@ function App() {
     }
   };
 
-  // UPDATED: CIO => pages per CIO+Division
+  // updated: uses pages (CIO+Division) instead of raw strings
   const handleViewGraphs = (entityType, entityNames) => {
     if (!entityNames || entityNames.length === 0) return;
 
-    if (entityType === 'cio') {
-      const pages = [];
+    const pages = buildPages(entityType, entityNames);
+    if (pages.length === 0) return;
 
-      entityNames.forEach((cioName) => {
-        const divisions = getDivisionsForCio(cioName);
-        if (divisions.length === 0) {
-          pages.push({ cioName, division: null, label: cioName });
-        } else {
-          divisions.forEach((division) => {
-            pages.push({
-              cioName,
-              division,
-              label: `${cioName} - ${division}`,
-            });
-          });
-        }
-      });
-
-      if (pages.length === 0) return;
-
-      setNavigationList(pages);
-      setCurrentOwnerIndex(0);
-      setModalEntityType('cioDivision');
-      fetchAndShowModal('cioDivision', pages[0]);
-      return;
-    }
-
-    // existing behavior for CIO-1 & Owner
-    setNavigationList(entityNames);
+    setNavigationList(pages);
     setCurrentOwnerIndex(0);
     setModalEntityType(entityType);
-    fetchAndShowModal(entityType, entityNames[0]);
+
+    const firstPage = pages[0];
+    fetchAndShowModal(entityType, firstPage.entityName, firstPage.label);
   };
 
-  // UPDATED: CIO => multiple pages per CIO+Division in PDF
+  // updated: CIO PDF pages per CIO+Division
   const handleDownloadReport = async (entityType, entityNames) => {
     if (!entityNames || entityNames.length === 0) return;
 
     setIsGeneratingPdf(true);
     let urls;
     let roles;
-    let pageConfigs = [];
 
     switch (entityType) {
       case 'cio':
         urls = cioGraphApiUrls;
         roles = [{ role: 'cio', param: 'cio' }];
-
-        entityNames.forEach((cioName) => {
-          const divisions = getDivisionsForCio(cioName);
-          if (divisions.length === 0) {
-            pageConfigs.push({
-              label: cioName,
-              entityName: cioName,
-              division: null,
-            });
-          } else {
-            divisions.forEach((division) => {
-              pageConfigs.push({
-                label: `${cioName} - ${division}`,
-                entityName: cioName,
-                division,
-              });
-            });
-          }
-        });
         break;
-
       case 'ciol':
       case 'cio1':
         urls = ciolGraphApiUrls;
         roles = [{ role: 'cio1', param: 'cio1' }];
-        pageConfigs = entityNames.map((name) => ({
-          label: name,
-          entityName: name,
-          division: null,
-        }));
         break;
-
       case 'owner':
         urls = ownerGraphApiUrls;
         roles = [
           { role: 'portfolioowner', param: 'portfolioowner' },
           { role: 'cio1', param: 'cio1' },
         ];
-        pageConfigs = entityNames.map((name) => ({
-          label: name,
-          entityName: name,
-          division: null,
-        }));
         break;
-
       default:
         setIsGeneratingPdf(false);
         return;
@@ -863,13 +807,11 @@ function App() {
         console.error('Failed to load front page image:', error);
       }
 
-      for (const config of pageConfigs) {
-        const { graphsData, period } = await fetchDataForEntity(
-          config.entityName,
-          urls,
-          roles,
-          config.division
-        );
+      const pages = buildPages(entityType, entityNames);
+
+      for (const page of pages) {
+        const { entityName, label } = page;
+        const { graphsData, period } = await fetchDataForEntity(entityName, urls, roles);
         if (!graphsData) continue;
 
         const tempContainer = document.createElement('div');
@@ -888,11 +830,9 @@ function App() {
         await new Promise((resolve) => {
           root.render(
             <div>
-              <h2 style={{ textAlign: 'center', color: '#1e3a8a' }}>
-                DORA Report: {config.label}
-              </h2>
+              <h2 style={{ textAlign: 'center', color: '#1e3a8a' }}>DORA Report: {label}</h2>
               <PortfolioOwnerModal
-                PortfolioOwner={config.label}
+                PortfolioOwner={label}
                 PortfolioOwnerData={graphsData}
                 Period={period}
                 loading={false}
@@ -1186,20 +1126,15 @@ function App() {
     setPeriod([]);
   };
 
-  // UPDATED: navigation works with CIO+Division page objects
+  // updated: navigation now uses pages
   const handleGraphNavigation = (direction) => {
     if (currentOwnerIndex === null) return;
 
     const newIndex = currentOwnerIndex + direction;
     if (newIndex >= 0 && newIndex < navigationList.length) {
       setCurrentOwnerIndex(newIndex);
-      const nextItem = navigationList[newIndex];
-
-      if (modalEntityType === 'cioDivision') {
-        fetchAndShowModal('cioDivision', nextItem);
-      } else {
-        fetchAndShowModal(modalEntityType, nextItem);
-      }
+      const nextPage = navigationList[newIndex]; // { entityName, label }
+      fetchAndShowModal(modalEntityType, nextPage.entityName, nextPage.label);
     }
   };
 
@@ -1209,12 +1144,7 @@ function App() {
       .filter((c) => selectedCIOs.includes(c.name))
       .flatMap((c) => c.ids.map((id) => id.toLowerCase()));
 
-    if (modalEntityType === 'cioDivision') {
-      const [cioDisplay] = modalEntityName.split(' - ');
-      if (cioDisplay) {
-        cioInfoForModal = `CIO: ${cioDisplay}`;
-      }
-    } else if (modalEntityType === 'ciol' || modalEntityType === 'cio1') {
+    if (modalEntityType === 'ciol' || modalEntityType === 'cio1') {
       const record = portfolioOwnerData.find(
         (d) =>
           d.CIO1 === modalEntityName &&
