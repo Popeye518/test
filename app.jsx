@@ -243,7 +243,7 @@ function App() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [modalEntityName, setModalEntityName] = useState('');
   const [portfolioOwnerData, setPortfolioOwnerData] = useState([]);
-  const [navigationList, setNavigationList] = useState([]); // now pages
+  const [navigationList, setNavigationList] = useState([]);
   const [currentOwnerIndex, setCurrentOwnerIndex] = useState(null);
   const [modalEntityType, setModalEntityType] = useState(null);
   const [showComparisonTable, setShowComparisonTable] = useState(false);
@@ -251,14 +251,8 @@ function App() {
   const [comparisonEntityType, setComparisonEntityType] = useState('');
   const [showViewOptionsModal, setShowViewOptionsModal] = useState(false);
   const [showDownloadOptionsModal, setShowDownloadOptionsModal] = useState(false);
-  const [viewOptionsContext, setViewOptionsContext] = useState({
-    entityType: null,
-    entityNames: [],
-  });
-  const [downloadOptionsContext, setDownloadOptionsContext] = useState({
-    entityType: null,
-    entityNames: [],
-  });
+  const [viewOptionsContext, setViewOptionsContext] = useState({ entityType: null, entityNames: [] });
+  const [downloadOptionsContext, setDownloadOptionsContext] = useState({ entityType: null, entityNames: [] });
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [detailsModalData, setDetailsModalData] = useState(null);
   const [detailsModalLoading, setDetailsModalLoading] = useState(false);
@@ -297,13 +291,9 @@ function App() {
   const handleDownloadSelection = (downloadType) => {
     const { entityType, entityNames } = downloadOptionsContext;
     if (downloadType === 'graph') {
-      handleDownloadReport(entityType, entityNames).finally(() =>
-        setShowDownloadOptionsModal(false)
-      );
+      handleDownloadReport(entityType, entityNames).finally(() => setShowDownloadOptionsModal(false));
     } else {
-      handleDownloadTableReport(entityType, entityNames).finally(() =>
-        setShowDownloadOptionsModal(false)
-      );
+      handleDownloadTableReport(entityType, entityNames).finally(() => setShowDownloadOptionsModal(false));
     }
   };
 
@@ -373,9 +363,7 @@ function App() {
 
       const data = await response.json();
       const allResults = Array.isArray(data) ? data : data.results || data.items || data.data || [];
-      const filteredResults = allResults.filter(
-        (item) => item.Period && item.Period.trim() === period
-      );
+      const filteredResults = allResults.filter((item) => item.Period && item.Period.trim() === period);
 
       if (filteredResults.length === 0) {
         setDetailsModalData([]);
@@ -387,18 +375,14 @@ function App() {
       setDetailsModalData(filteredResults);
 
       if (graphKey !== 'graph1') {
-        const sortedResults = [...filteredResults].sort(
-          (a, b) => Number(a.Value) - Number(b.Value)
-        );
+        const sortedResults = [...filteredResults].sort((a, b) => Number(a.Value) - Number(b.Value));
         setBestPerformingApps(sortedResults.slice(0, 3));
       } else {
         setBestPerformingApps([]);
       }
     } catch (e) {
       console.error('Error fetching details data:', e);
-      setDetailsModalData([
-        { error: 'Failed to fetch data. Please check the console for details.' },
-      ]);
+      setDetailsModalData([{ error: 'Failed to fetch data. Please check the console for details.' }]);
     } finally {
       setDetailsModalLoading(false);
     }
@@ -412,21 +396,13 @@ function App() {
       ]);
 
       const poData = await poResponse.json();
-      const portfolioOwnerList = Array.isArray(poData)
-        ? poData
-        : poData.results || poData.items || poData.data || [];
-      if (!Array.isArray(portfolioOwnerList)) {
-        throw new Error('Portfolio Owner data is not an array.');
-      }
+      const portfolioOwnerList = Array.isArray(poData) ? poData : poData.results || poData.items || poData.data || [];
+      if (!Array.isArray(portfolioOwnerList)) throw new Error('Portfolio Owner data is not an array.');
       setPortfolioOwnerData(portfolioOwnerList);
 
       const cioData = await cioResponse.json();
-      const cioListFromApi = Array.isArray(cioData)
-        ? cioData
-        : cioData.results || cioData.items || cioData.data || [];
-      if (!Array.isArray(cioListFromApi)) {
-        throw new Error('CIO data is not an array.');
-      }
+      const cioListFromApi = Array.isArray(cioData) ? cioData : cioData.results || cioData.items || cioData.data || [];
+      if (!Array.isArray(cioListFromApi)) throw new Error('CIO data is not an array.');
 
       const allCioRecords = [...cioListFromApi, ...portfolioOwnerList];
       const isIdLike = (str) => /^G\d+$/i.test(str);
@@ -464,68 +440,12 @@ function App() {
         }
       });
 
-      const finalCios = Array.from(finalMap.values()).sort((a, b) =>
-        a.name.localeCompare(b.name)
-      );
+      const finalCios = Array.from(finalMap.values()).sort((a, b) => a.name.localeCompare(b.name));
       setCIO(finalCios);
     } catch (e) {
       console.error('Error fetching initial data:', e);
     }
   };
-
-  // ---- NEW HELPERS FOR CIO + DIVISION PAGES ----
-
-  const getDivisionsForCio = (cioName) => {
-    const cioObj = CIO.find(
-      (c) => String(c.name).toLowerCase() === String(cioName).toLowerCase()
-    );
-    if (!cioObj) return [];
-
-    const cioIds = cioObj.ids.map((id) => String(id).toLowerCase());
-    const divisions = new Set();
-
-    portfolioOwnerData.forEach((item) => {
-      if (
-        item.CIO &&
-        cioIds.includes(String(item.CIO).toLowerCase()) &&
-        item.Division
-      ) {
-        divisions.add(String(item.Division).trim());
-      }
-    });
-
-    return Array.from(divisions);
-  };
-
-  const buildPages = (entityType, entityNames) => {
-    if (!entityNames || entityNames.length === 0) return [];
-
-    if (entityType === 'cio') {
-      const pages = [];
-      entityNames.forEach((cioName) => {
-        const divisions = getDivisionsForCio(cioName);
-        if (!divisions.length) {
-          pages.push({ entityName: cioName, label: cioName });
-        } else {
-          divisions.forEach((division) => {
-            pages.push({
-              entityName: cioName,
-              label: `${cioName} - ${division}`,
-            });
-          });
-        }
-      });
-      return pages;
-    }
-
-    // ciol / owner unchanged
-    return entityNames.map((name) => ({
-      entityName: name,
-      label: name,
-    }));
-  };
-
-  // ----------------------------------------------
 
   useEffect(() => {
     if (selectedCIOs.length > 0) {
@@ -648,22 +568,8 @@ function App() {
         responsesByKey[key] = Array.from(dataByPeriod.values());
       });
 
-      const periodNames = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
-      const formatPeriodFromDate = (date) =>
-        `${periodNames[date.getMonth()]}-${date.getFullYear()}`;
+      const periodNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const formatPeriodFromDate = (date) => `${periodNames[date.getMonth()]}-${date.getFullYear()}`;
 
       const generateLast6Months = () => {
         const periods = [];
@@ -693,8 +599,7 @@ function App() {
     }
   };
 
-  // updated: optional labelOverride for CIO+Division
-  const fetchAndShowModal = async (entityType, entityName, labelOverride) => {
+  const fetchAndShowModal = async (entityType, entityName) => {
     let urls;
     let roles;
 
@@ -720,7 +625,7 @@ function App() {
     }
 
     setLoading(true);
-    setModalEntityName(labelOverride || entityName);
+    setModalEntityName(entityName);
     setPortfolioOwnerGraphs(null);
 
     try {
@@ -734,22 +639,14 @@ function App() {
     }
   };
 
-  // updated: uses pages (CIO+Division) instead of raw strings
   const handleViewGraphs = (entityType, entityNames) => {
     if (!entityNames || entityNames.length === 0) return;
-
-    const pages = buildPages(entityType, entityNames);
-    if (pages.length === 0) return;
-
-    setNavigationList(pages);
+    setNavigationList(entityNames);
     setCurrentOwnerIndex(0);
     setModalEntityType(entityType);
-
-    const firstPage = pages[0];
-    fetchAndShowModal(entityType, firstPage.entityName, firstPage.label);
+    fetchAndShowModal(entityType, entityNames[0]);
   };
 
-  // updated: CIO PDF pages per CIO+Division
   const handleDownloadReport = async (entityType, entityNames) => {
     if (!entityNames || entityNames.length === 0) return;
 
@@ -796,10 +693,7 @@ function App() {
 
         const currentDate = new Date();
         currentDate.setMonth(currentDate.getMonth() - 1);
-        const monthYear = currentDate.toLocaleString('default', {
-          month: 'short',
-          year: 'numeric',
-        });
+        const monthYear = currentDate.toLocaleString('default', { month: 'short', year: 'numeric' });
         pdf.setFontSize(14);
         pdf.setTextColor(255, 255, 255);
         pdf.text(monthYear, 20, 160);
@@ -807,10 +701,7 @@ function App() {
         console.error('Failed to load front page image:', error);
       }
 
-      const pages = buildPages(entityType, entityNames);
-
-      for (const page of pages) {
-        const { entityName, label } = page;
+      for (const entityName of entityNames) {
         const { graphsData, period } = await fetchDataForEntity(entityName, urls, roles);
         if (!graphsData) continue;
 
@@ -830,9 +721,9 @@ function App() {
         await new Promise((resolve) => {
           root.render(
             <div>
-              <h2 style={{ textAlign: 'center', color: '#1e3a8a' }}>DORA Report: {label}</h2>
+              <h2 style={{ textAlign: 'center', color: '#1e3a8a' }}>DORA Report: {entityName}</h2>
               <PortfolioOwnerModal
-                PortfolioOwner={label}
+                PortfolioOwner={entityName}
                 PortfolioOwnerData={graphsData}
                 Period={period}
                 loading={false}
@@ -920,9 +811,7 @@ function App() {
           const lowerEntityName = String(entityName).toLowerCase();
 
           if (entityType === 'cio') {
-            const cioObject = CIO.find(
-              (c) => String(c.name).toLowerCase() === lowerEntityName
-            );
+            const cioObject = CIO.find((c) => String(c.name).toLowerCase() === lowerEntityName);
             if (cioObject) {
               const cioIds = cioObject.ids.map((id) => String(id).toLowerCase());
               record = portfolioOwnerData.find(
@@ -935,9 +824,7 @@ function App() {
             );
           } else if (entityType === 'owner') {
             record = portfolioOwnerData.find(
-              (d) =>
-                d.PortfolioOwner &&
-                String(d.PortfolioOwner).toLowerCase() === lowerEntityName
+              (d) => d.PortfolioOwner && String(d.PortfolioOwner).toLowerCase() === lowerEntityName
             );
           }
 
@@ -1054,30 +941,10 @@ function App() {
                 display: 'block',
               }}
             >
-              <TempTable
-                title={METRIC_LABELS.graph1}
-                data={tableData.graph1}
-                period={tableData.period}
-                graphKey="graph1"
-              />
-              <TempTable
-                title={METRIC_LABELS.graph2}
-                data={tableData.graph2}
-                period={tableData.period}
-                graphKey="graph2"
-              />
-              <TempTable
-                title={METRIC_LABELS.graph3}
-                data={tableData.graph3}
-                period={tableData.period}
-                graphKey="graph3"
-              />
-              <TempTable
-                title={METRIC_LABELS.graph4}
-                data={tableData.graph4}
-                period={tableData.period}
-                graphKey="graph4"
-              />
+              <TempTable title={METRIC_LABELS.graph1} data={tableData.graph1} period={tableData.period} graphKey="graph1" />
+              <TempTable title={METRIC_LABELS.graph2} data={tableData.graph2} period={tableData.period} graphKey="graph2" />
+              <TempTable title={METRIC_LABELS.graph3} data={tableData.graph3} period={tableData.period} graphKey="graph3" />
+              <TempTable title={METRIC_LABELS.graph4} data={tableData.graph4} period={tableData.period} graphKey="graph4" />
             </div>
           </div>
         );
@@ -1126,15 +993,14 @@ function App() {
     setPeriod([]);
   };
 
-  // updated: navigation now uses pages
   const handleGraphNavigation = (direction) => {
     if (currentOwnerIndex === null) return;
 
     const newIndex = currentOwnerIndex + direction;
     if (newIndex >= 0 && newIndex < navigationList.length) {
       setCurrentOwnerIndex(newIndex);
-      const nextPage = navigationList[newIndex]; // { entityName, label }
-      fetchAndShowModal(modalEntityType, nextPage.entityName, nextPage.label);
+      const nextEntityName = navigationList[newIndex];
+      fetchAndShowModal(modalEntityType, nextEntityName);
     }
   };
 
@@ -1163,8 +1029,7 @@ function App() {
 
       const record = portfolioOwnerData.find((d) => {
         if (d.PortfolioOwner !== modalEntityName) return false;
-        const matchesCio =
-          d.CIO && allSelectedCioIds.includes(String(d.CIO).toLowerCase());
+        const matchesCio = d.CIO && allSelectedCioIds.includes(String(d.CIO).toLowerCase());
         if (!matchesCio) return false;
         if (lowerCaseCio1s.length > 0) {
           return d.CIO1 && lowerCaseCio1s.includes(String(d.CIO1).toLowerCase());
@@ -1202,22 +1067,19 @@ function App() {
             <div className="metric-item">
               <div className="metric-title">Release Frequency (2 months avg.)</div>
               <div className="metric-description">
-                This metric reflects the volume of releases relative to the volume of
-                applications in scope.
+                This metric reflects the volume of releases relative to the volume of applications in scope.
               </div>
             </div>
             <div className="metric-item">
               <div className="metric-title">Lead Time for Change (days)</div>
               <div className="metric-description">
-                This metric shows the average time between approval and implementation
-                completion.
+                This metric shows the average time between approval and implementation completion.
               </div>
             </div>
             <div className="metric-item">
               <div className="metric-title">Change Failure Rate (%)</div>
               <div className="metric-description">
-                This metric is the percentage of failed changes from the overall change
-                population.
+                This metric is the percentage of failed changes from the overall change population.
               </div>
             </div>
             <div className="metric-item">
