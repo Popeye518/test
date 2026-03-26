@@ -251,8 +251,14 @@ function App() {
   const [comparisonEntityType, setComparisonEntityType] = useState('');
   const [showViewOptionsModal, setShowViewOptionsModal] = useState(false);
   const [showDownloadOptionsModal, setShowDownloadOptionsModal] = useState(false);
-  const [viewOptionsContext, setViewOptionsContext] = useState({ entityType: null, entityNames: [] });
-  const [downloadOptionsContext, setDownloadOptionsContext] = useState({ entityType: null, entityNames: [] });
+  const [viewOptionsContext, setViewOptionsContext] = useState({
+    entityType: null,
+    entityNames: [],
+  });
+  const [downloadOptionsContext, setDownloadOptionsContext] = useState({
+    entityType: null,
+    entityNames: [],
+  });
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [detailsModalData, setDetailsModalData] = useState(null);
   const [detailsModalLoading, setDetailsModalLoading] = useState(false);
@@ -291,9 +297,13 @@ function App() {
   const handleDownloadSelection = (downloadType) => {
     const { entityType, entityNames } = downloadOptionsContext;
     if (downloadType === 'graph') {
-      handleDownloadReport(entityType, entityNames).finally(() => setShowDownloadOptionsModal(false));
+      handleDownloadReport(entityType, entityNames).finally(() =>
+        setShowDownloadOptionsModal(false)
+      );
     } else {
-      handleDownloadTableReport(entityType, entityNames).finally(() => setShowDownloadOptionsModal(false));
+      handleDownloadTableReport(entityType, entityNames).finally(() =>
+        setShowDownloadOptionsModal(false)
+      );
     }
   };
 
@@ -363,7 +373,9 @@ function App() {
 
       const data = await response.json();
       const allResults = Array.isArray(data) ? data : data.results || data.items || data.data || [];
-      const filteredResults = allResults.filter((item) => item.Period && item.Period.trim() === period);
+      const filteredResults = allResults.filter(
+        (item) => item.Period && item.Period.trim() === period
+      );
 
       if (filteredResults.length === 0) {
         setDetailsModalData([]);
@@ -375,14 +387,18 @@ function App() {
       setDetailsModalData(filteredResults);
 
       if (graphKey !== 'graph1') {
-        const sortedResults = [...filteredResults].sort((a, b) => Number(a.Value) - Number(b.Value));
+        const sortedResults = [...filteredResults].sort(
+          (a, b) => Number(a.Value) - Number(b.Value)
+        );
         setBestPerformingApps(sortedResults.slice(0, 3));
       } else {
         setBestPerformingApps([]);
       }
     } catch (e) {
       console.error('Error fetching details data:', e);
-      setDetailsModalData([{ error: 'Failed to fetch data. Please check the console for details.' }]);
+      setDetailsModalData([
+        { error: 'Failed to fetch data. Please check the console for details.' },
+      ]);
     } finally {
       setDetailsModalLoading(false);
     }
@@ -396,13 +412,21 @@ function App() {
       ]);
 
       const poData = await poResponse.json();
-      const portfolioOwnerList = Array.isArray(poData) ? poData : poData.results || poData.items || poData.data || [];
-      if (!Array.isArray(portfolioOwnerList)) throw new Error('Portfolio Owner data is not an array.');
+      const portfolioOwnerList = Array.isArray(poData)
+        ? poData
+        : poData.results || poData.items || poData.data || [];
+      if (!Array.isArray(portfolioOwnerList)) {
+        throw new Error('Portfolio Owner data is not an array.');
+      }
       setPortfolioOwnerData(portfolioOwnerList);
 
       const cioData = await cioResponse.json();
-      const cioListFromApi = Array.isArray(cioData) ? cioData : cioData.results || cioData.items || cioData.data || [];
-      if (!Array.isArray(cioListFromApi)) throw new Error('CIO data is not an array.');
+      const cioListFromApi = Array.isArray(cioData)
+        ? cioData
+        : cioData.results || cioData.items || cioData.data || [];
+      if (!Array.isArray(cioListFromApi)) {
+        throw new Error('CIO data is not an array.');
+      }
 
       const allCioRecords = [...cioListFromApi, ...portfolioOwnerList];
       const isIdLike = (str) => /^G\d+$/i.test(str);
@@ -440,11 +464,36 @@ function App() {
         }
       });
 
-      const finalCios = Array.from(finalMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+      const finalCios = Array.from(finalMap.values()).sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
       setCIO(finalCios);
     } catch (e) {
       console.error('Error fetching initial data:', e);
     }
+  };
+
+  // NEW: get all divisions for a given CIO display name
+  const getDivisionsForCio = (cioName) => {
+    const cioObj = CIO.find(
+      (c) => String(c.name).toLowerCase() === String(cioName).toLowerCase()
+    );
+    if (!cioObj) return [];
+
+    const cioIds = cioObj.ids.map((id) => String(id).toLowerCase());
+    const divisions = new Set();
+
+    portfolioOwnerData.forEach((item) => {
+      if (
+        item.CIO &&
+        cioIds.includes(String(item.CIO).toLowerCase()) &&
+        item.Division
+      ) {
+        divisions.add(String(item.Division).trim());
+      }
+    });
+
+    return Array.from(divisions);
   };
 
   useEffect(() => {
@@ -529,138 +578,153 @@ function App() {
   const handleClearOwnerFilters = () => {
     setSelectedOwners([]);
   };
-const fetchDataForEntity = async (entityName, urls, roles, entityType) => {
-  try {
-    const normalizeData = (data) => {
-      if (Array.isArray(data)) return data;
-      if (data?.results && Array.isArray(data.results)) return data.results;
-      if (data?.items && Array.isArray(data.items)) return data.items;
-      if (data?.data && Array.isArray(data.data)) return data.data;
-      return [];
-    };
 
-    const allFetchPromises = [];
+  // UPDATED: optional division filter
+  const fetchDataForEntity = async (entityName, urls, roles, division) => {
+    try {
+      const normalizeData = (data) => {
+        if (Array.isArray(data)) return data;
+        if (data?.results && Array.isArray(data.results)) return data.results;
+        if (data?.items && Array.isArray(data.items)) return data.items;
+        if (data?.data && Array.isArray(data.data)) return data.data;
+        return [];
+      };
 
-    for (const { param } of roles) {
-      for (const [key, url] of Object.entries(urls)) {
-        const fetchUrl = `${url}?${param}=${encodeURIComponent(entityName)}`;
-        allFetchPromises.push(
-          fetch(fetchUrl)
-            .then((res) => res.json())
-            .then((jsonData) => ({
-              key,
-              data: normalizeData(jsonData),
-            }))
-        );
+      const allFetchPromises = [];
+
+      for (const { param } of roles) {
+        for (const [key, url] of Object.entries(urls)) {
+          const fetchUrl = `${url}?${param}=${encodeURIComponent(entityName)}`;
+          allFetchPromises.push(
+            fetch(fetchUrl)
+              .then((res) => res.json())
+              .then((jsonData) => ({ key, data: normalizeData(jsonData) }))
+          );
+        }
       }
-    }
 
-    const allRoleData = await Promise.all(allFetchPromises);
+      const allRoleData = await Promise.all(allFetchPromises);
+      const responsesByKey = {};
 
-    const periodNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      Object.keys(urls).forEach((key) => {
+        const dataForGraph = allRoleData.filter((d) => d.key === key);
+        let combinedData = dataForGraph.reduce((acc, curr) => acc.concat(curr.data), []);
 
-    const formatPeriodFromDate = (date) => `${periodNames[date.getMonth()]}-${date.getFullYear()}`;
+        // If graph API returns Division, filter by division for CIO+Division pages
+        if (division) {
+          combinedData = combinedData.filter(
+            (point) =>
+              point &&
+              point.Division &&
+              String(point.Division).trim().toLowerCase() === division.toLowerCase()
+          );
+        }
 
-    const generateLast6Months = () => {
-      const periods = [];
-      const now = new Date();
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        periods.push(formatPeriodFromDate(date));
-      }
-      return periods;
-    };
-
-    const last6MonthPeriods = generateLast6Months();
-    const graphsData = {};
-
-    Object.keys(urls).forEach((graphKey) => {
-      const dataForGraph = allRoleData.filter((d) => d.key === graphKey);
-      const combinedData = dataForGraph.reduce((acc, curr) => acc.concat(curr.data), []);
-
-      if (entityType === 'cio') {
-        const divisionMap = new Map();
-
-        combinedData.forEach((point) => {
-          if (!point || !point.Period) return;
-
-          const division = point.Division?.trim() || 'N/A';
-          const period = point.Period.trim();
-          const value = Number(point.Value) || 0;
-          const label = `${entityName} - ${division}`;
-
-          if (!divisionMap.has(label)) {
-            divisionMap.set(label, {
-              name: label,
-              division,
-              valuesByPeriod: {},
-            });
-          }
-
-          divisionMap.get(label).valuesByPeriod[period] = value;
-        });
-
-        graphsData[graphKey] = Array.from(divisionMap.values()).map((item) => ({
-          name: item.name,
-          division: item.division,
-          data: last6MonthPeriods.map((p) => item.valuesByPeriod[p] ?? 0),
-        }));
-      } else {
         const dataByPeriod = new Map();
-
         combinedData.forEach((point) => {
-          if (point && point.Period) {
-            dataByPeriod.set(point.Period.trim(), point);
-          }
+          if (point && point.Period) dataByPeriod.set(point.Period.trim(), point);
         });
 
-        const graphData = Array.from(dataByPeriod.values());
+        responsesByKey[key] = Array.from(dataByPeriod.values());
+      });
 
+      const periodNames = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      const formatPeriodFromDate = (date) =>
+        `${periodNames[date.getMonth()]}-${date.getFullYear()}`;
+
+      const generateLast6Months = () => {
+        const periods = [];
+        const now = new Date();
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          periods.push(formatPeriodFromDate(date));
+        }
+        return periods;
+      };
+
+      const last6MonthPeriods = generateLast6Months();
+      const graphsData = {};
+
+      Object.keys(urls).forEach((graphKey) => {
+        const graphData = responsesByKey[graphKey] || [];
         graphsData[graphKey] = last6MonthPeriods.map((p) => {
           const point = graphData.find((g) => g?.Period?.trim() === p);
           return point?.Value ?? 0;
         });
-      }
-    });
+      });
 
-    return { graphsData, period: last6MonthPeriods };
-  } catch (e) {
-    console.error('Error fetching graph data:', e);
-    return { graphsData: null, period: [] };
-  }
-};
+      return { graphsData, period: last6MonthPeriods };
+    } catch (e) {
+      console.error('Error fetching graph data:', e);
+      return { graphsData: null, period: [] };
+    }
+  };
 
-  const fetchAndShowModal = async (entityType, entityName) => {
+  // UPDATED: now accepts CIO+Division config
+  const fetchAndShowModal = async (entityType, entityConfig) => {
     let urls;
     let roles;
+    let displayName;
+    let division = null;
 
-    switch (entityType) {
-      case 'cio':
-        urls = cioGraphApiUrls;
-        roles = [{ role: 'cio', param: 'cio' }];
-        break;
-      case 'ciol':
-      case 'cio1':
-        urls = ciolGraphApiUrls;
-        roles = [{ role: 'cio1', param: 'cio1' }];
-        break;
-      case 'owner':
-        urls = ownerGraphApiUrls;
-        roles = [
-          { role: 'portfolioowner', param: 'portfolioowner' },
-          { role: 'cio1', param: 'cio1' },
-        ];
-        break;
-      default:
-        return;
+    if (entityType === 'cioDivision') {
+      // entityConfig: { cioName, division, label }
+      displayName = entityConfig.label || entityConfig.cioName;
+      division = entityConfig.division;
+      urls = cioGraphApiUrls;
+      roles = [{ role: 'cio', param: 'cio' }];
+    } else {
+      const entityName = entityConfig; // string
+      switch (entityType) {
+        case 'cio':
+          urls = cioGraphApiUrls;
+          roles = [{ role: 'cio', param: 'cio' }];
+          displayName = entityName;
+          break;
+        case 'ciol':
+        case 'cio1':
+          urls = ciolGraphApiUrls;
+          roles = [{ role: 'cio1', param: 'cio1' }];
+          displayName = entityName;
+          break;
+        case 'owner':
+          urls = ownerGraphApiUrls;
+          roles = [
+            { role: 'portfolioowner', param: 'portfolioowner' },
+            { role: 'cio1', param: 'cio1' },
+          ];
+          displayName = entityName;
+          break;
+        default:
+          return;
+      }
     }
 
     setLoading(true);
-    setModalEntityName(entityName);
+    setModalEntityType(entityType);
+    setModalEntityName(displayName);
     setPortfolioOwnerGraphs(null);
 
     try {
-      const { graphsData, period } = await fetchDataForEntity(entityName, urls, roles);
+      const { graphsData, period } = await fetchDataForEntity(
+        entityType === 'cioDivision' ? entityConfig.cioName : displayName,
+        urls,
+        roles,
+        division
+      );
       setPortfolioOwnerGraphs(graphsData);
       setPeriod(period);
     } catch (e) {
@@ -670,38 +734,102 @@ const fetchDataForEntity = async (entityName, urls, roles, entityType) => {
     }
   };
 
+  // UPDATED: CIO => pages per CIO+Division
   const handleViewGraphs = (entityType, entityNames) => {
     if (!entityNames || entityNames.length === 0) return;
+
+    if (entityType === 'cio') {
+      const pages = [];
+
+      entityNames.forEach((cioName) => {
+        const divisions = getDivisionsForCio(cioName);
+        if (divisions.length === 0) {
+          pages.push({ cioName, division: null, label: cioName });
+        } else {
+          divisions.forEach((division) => {
+            pages.push({
+              cioName,
+              division,
+              label: `${cioName} - ${division}`,
+            });
+          });
+        }
+      });
+
+      if (pages.length === 0) return;
+
+      setNavigationList(pages);
+      setCurrentOwnerIndex(0);
+      setModalEntityType('cioDivision');
+      fetchAndShowModal('cioDivision', pages[0]);
+      return;
+    }
+
+    // existing behavior for CIO-1 & Owner
     setNavigationList(entityNames);
     setCurrentOwnerIndex(0);
     setModalEntityType(entityType);
     fetchAndShowModal(entityType, entityNames[0]);
   };
 
+  // UPDATED: CIO => multiple pages per CIO+Division in PDF
   const handleDownloadReport = async (entityType, entityNames) => {
     if (!entityNames || entityNames.length === 0) return;
 
     setIsGeneratingPdf(true);
     let urls;
     let roles;
+    let pageConfigs = [];
 
     switch (entityType) {
       case 'cio':
         urls = cioGraphApiUrls;
         roles = [{ role: 'cio', param: 'cio' }];
+
+        entityNames.forEach((cioName) => {
+          const divisions = getDivisionsForCio(cioName);
+          if (divisions.length === 0) {
+            pageConfigs.push({
+              label: cioName,
+              entityName: cioName,
+              division: null,
+            });
+          } else {
+            divisions.forEach((division) => {
+              pageConfigs.push({
+                label: `${cioName} - ${division}`,
+                entityName: cioName,
+                division,
+              });
+            });
+          }
+        });
         break;
+
       case 'ciol':
       case 'cio1':
         urls = ciolGraphApiUrls;
         roles = [{ role: 'cio1', param: 'cio1' }];
+        pageConfigs = entityNames.map((name) => ({
+          label: name,
+          entityName: name,
+          division: null,
+        }));
         break;
+
       case 'owner':
         urls = ownerGraphApiUrls;
         roles = [
           { role: 'portfolioowner', param: 'portfolioowner' },
           { role: 'cio1', param: 'cio1' },
         ];
+        pageConfigs = entityNames.map((name) => ({
+          label: name,
+          entityName: name,
+          division: null,
+        }));
         break;
+
       default:
         setIsGeneratingPdf(false);
         return;
@@ -724,7 +852,10 @@ const fetchDataForEntity = async (entityName, urls, roles, entityType) => {
 
         const currentDate = new Date();
         currentDate.setMonth(currentDate.getMonth() - 1);
-        const monthYear = currentDate.toLocaleString('default', { month: 'short', year: 'numeric' });
+        const monthYear = currentDate.toLocaleString('default', {
+          month: 'short',
+          year: 'numeric',
+        });
         pdf.setFontSize(14);
         pdf.setTextColor(255, 255, 255);
         pdf.text(monthYear, 20, 160);
@@ -732,8 +863,13 @@ const fetchDataForEntity = async (entityName, urls, roles, entityType) => {
         console.error('Failed to load front page image:', error);
       }
 
-      for (const entityName of entityNames) {
-        const { graphsData, period } = await fetchDataForEntity(entityName, urls, roles);
+      for (const config of pageConfigs) {
+        const { graphsData, period } = await fetchDataForEntity(
+          config.entityName,
+          urls,
+          roles,
+          config.division
+        );
         if (!graphsData) continue;
 
         const tempContainer = document.createElement('div');
@@ -752,9 +888,11 @@ const fetchDataForEntity = async (entityName, urls, roles, entityType) => {
         await new Promise((resolve) => {
           root.render(
             <div>
-              <h2 style={{ textAlign: 'center', color: '#1e3a8a' }}>DORA Report: {entityName}</h2>
+              <h2 style={{ textAlign: 'center', color: '#1e3a8a' }}>
+                DORA Report: {config.label}
+              </h2>
               <PortfolioOwnerModal
-                PortfolioOwner={entityName}
+                PortfolioOwner={config.label}
                 PortfolioOwnerData={graphsData}
                 Period={period}
                 loading={false}
@@ -842,7 +980,9 @@ const fetchDataForEntity = async (entityName, urls, roles, entityType) => {
           const lowerEntityName = String(entityName).toLowerCase();
 
           if (entityType === 'cio') {
-            const cioObject = CIO.find((c) => String(c.name).toLowerCase() === lowerEntityName);
+            const cioObject = CIO.find(
+              (c) => String(c.name).toLowerCase() === lowerEntityName
+            );
             if (cioObject) {
               const cioIds = cioObject.ids.map((id) => String(id).toLowerCase());
               record = portfolioOwnerData.find(
@@ -855,7 +995,9 @@ const fetchDataForEntity = async (entityName, urls, roles, entityType) => {
             );
           } else if (entityType === 'owner') {
             record = portfolioOwnerData.find(
-              (d) => d.PortfolioOwner && String(d.PortfolioOwner).toLowerCase() === lowerEntityName
+              (d) =>
+                d.PortfolioOwner &&
+                String(d.PortfolioOwner).toLowerCase() === lowerEntityName
             );
           }
 
@@ -972,10 +1114,30 @@ const fetchDataForEntity = async (entityName, urls, roles, entityType) => {
                 display: 'block',
               }}
             >
-              <TempTable title={METRIC_LABELS.graph1} data={tableData.graph1} period={tableData.period} graphKey="graph1" />
-              <TempTable title={METRIC_LABELS.graph2} data={tableData.graph2} period={tableData.period} graphKey="graph2" />
-              <TempTable title={METRIC_LABELS.graph3} data={tableData.graph3} period={tableData.period} graphKey="graph3" />
-              <TempTable title={METRIC_LABELS.graph4} data={tableData.graph4} period={tableData.period} graphKey="graph4" />
+              <TempTable
+                title={METRIC_LABELS.graph1}
+                data={tableData.graph1}
+                period={tableData.period}
+                graphKey="graph1"
+              />
+              <TempTable
+                title={METRIC_LABELS.graph2}
+                data={tableData.graph2}
+                period={tableData.period}
+                graphKey="graph2"
+              />
+              <TempTable
+                title={METRIC_LABELS.graph3}
+                data={tableData.graph3}
+                period={tableData.period}
+                graphKey="graph3"
+              />
+              <TempTable
+                title={METRIC_LABELS.graph4}
+                data={tableData.graph4}
+                period={tableData.period}
+                graphKey="graph4"
+              />
             </div>
           </div>
         );
@@ -1024,14 +1186,20 @@ const fetchDataForEntity = async (entityName, urls, roles, entityType) => {
     setPeriod([]);
   };
 
+  // UPDATED: navigation works with CIO+Division page objects
   const handleGraphNavigation = (direction) => {
     if (currentOwnerIndex === null) return;
 
     const newIndex = currentOwnerIndex + direction;
     if (newIndex >= 0 && newIndex < navigationList.length) {
       setCurrentOwnerIndex(newIndex);
-      const nextEntityName = navigationList[newIndex];
-      fetchAndShowModal(modalEntityType, nextEntityName);
+      const nextItem = navigationList[newIndex];
+
+      if (modalEntityType === 'cioDivision') {
+        fetchAndShowModal('cioDivision', nextItem);
+      } else {
+        fetchAndShowModal(modalEntityType, nextItem);
+      }
     }
   };
 
@@ -1041,7 +1209,12 @@ const fetchDataForEntity = async (entityName, urls, roles, entityType) => {
       .filter((c) => selectedCIOs.includes(c.name))
       .flatMap((c) => c.ids.map((id) => id.toLowerCase()));
 
-    if (modalEntityType === 'ciol' || modalEntityType === 'cio1') {
+    if (modalEntityType === 'cioDivision') {
+      const [cioDisplay] = modalEntityName.split(' - ');
+      if (cioDisplay) {
+        cioInfoForModal = `CIO: ${cioDisplay}`;
+      }
+    } else if (modalEntityType === 'ciol' || modalEntityType === 'cio1') {
       const record = portfolioOwnerData.find(
         (d) =>
           d.CIO1 === modalEntityName &&
@@ -1060,7 +1233,8 @@ const fetchDataForEntity = async (entityName, urls, roles, entityType) => {
 
       const record = portfolioOwnerData.find((d) => {
         if (d.PortfolioOwner !== modalEntityName) return false;
-        const matchesCio = d.CIO && allSelectedCioIds.includes(String(d.CIO).toLowerCase());
+        const matchesCio =
+          d.CIO && allSelectedCioIds.includes(String(d.CIO).toLowerCase());
         if (!matchesCio) return false;
         if (lowerCaseCio1s.length > 0) {
           return d.CIO1 && lowerCaseCio1s.includes(String(d.CIO1).toLowerCase());
@@ -1098,19 +1272,22 @@ const fetchDataForEntity = async (entityName, urls, roles, entityType) => {
             <div className="metric-item">
               <div className="metric-title">Release Frequency (2 months avg.)</div>
               <div className="metric-description">
-                This metric reflects the volume of releases relative to the volume of applications in scope.
+                This metric reflects the volume of releases relative to the volume of
+                applications in scope.
               </div>
             </div>
             <div className="metric-item">
               <div className="metric-title">Lead Time for Change (days)</div>
               <div className="metric-description">
-                This metric shows the average time between approval and implementation completion.
+                This metric shows the average time between approval and implementation
+                completion.
               </div>
             </div>
             <div className="metric-item">
               <div className="metric-title">Change Failure Rate (%)</div>
               <div className="metric-description">
-                This metric is the percentage of failed changes from the overall change population.
+                This metric is the percentage of failed changes from the overall change
+                population.
               </div>
             </div>
             <div className="metric-item">
